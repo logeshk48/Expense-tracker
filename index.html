@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Expense Tracker</title>
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Modern Font Pairing -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Charts (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+
+  <body>
+    <!-- Animated Background Layer -->
+    <div class="bg-wrapper">
+      <div class="mesh-gradient"></div>
+      <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+      </div>
+    </div>
+    <div class="animated-overlay"></div>
+
+
+
+    <div class="app">
+      <!-- Top Header -->
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1>Expense Tracker</h1>
+            <p>Smart Financial Insights</p>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <button id="exportBtn" class="btn btn-secondary">
+            <span class="btn-icon">↓</span>
+            Export
+          </button>
+          <button id="clearAllBtn" class="btn btn-danger">
+            <span class="btn-icon">×</span>
+            Clear All
+          </button>
+        </div>
+      </header>
+
+      <!-- Tabs -->
+      <nav class="tabs">
+        <button class="tab active" data-tab="expense">
+          <span class="tab-icon">💰</span>
+          <span>Expense</span>
+        </button>
+        <button class="tab" data-tab="report">
+          <span class="tab-icon">📊</span>
+          <span>Report</span>
+        </button>
+        <button class="tab" data-tab="tips">
+          <span class="tab-icon">💡</span>
+          <span>Tips</span>
+        </button>
+        <button class="tab" data-tab="analyze">
+          <span class="tab-icon">🔍</span>
+          <span>Analyze</span>
+        </button>
+        <button class="tab" data-tab="chat">
+          <span class="tab-icon">💬</span>
+          <span>Chat</span>
+        </button>
+      </nav>
+
+      <!-- Content -->
+      <main class="content">
+        <!-- EXPENSE TAB -->
+        <section class="panel active" id="expense">
+          <div class="grid">
+            <div class="card card-primary">
+              <div class="card-header">
+                <h2>Add Daily Expense</h2>
+                <p class="subtitle">Track your spending in real-time</p>
+              </div>
+
+              <form id="expenseForm" class="form">
+                <div class="field">
+                  <label>Amount (₹)</label>
+                  <div class="input-wrapper">
+                    <input type="number" id="amount" placeholder="250" required min="0" />
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Category</label>
+                  <div class="select-wrapper">
+                    <select id="category" required>
+                      <option value="">Select Category</option>
+                      <option>Food</option>
+                      <option>Travel</option>
+                      <option>Shopping</option>
+                      <option>Bills</option>
+                      <option>Entertainment</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Date</label>
+                  <div class="input-wrapper">
+                    <input type="date" id="date" required />
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Note (Optional)</label>
+                  <div class="input-wrapper">
+                    <input type="text" id="note" placeholder="e.g., lunch, cab ride" />
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-large">
+                  <span class="btn-icon">+</span>
+                  Add Expense
+                </button>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2>Quick Overview</h2>
+                <p class="subtitle">Your spending at a glance</p>
+              </div>
+
+              <div class="stats-grid">
+                <div class="stat-card stat-today">
+                  <div class="stat-label">Today</div>
+                  <div class="stat-value" id="todayTotal">₹0</div>
+                </div>
+                <div class="stat-card stat-week">
+                  <div class="stat-label">This Week</div>
+                  <div class="stat-value" id="weekTotal">₹0</div>
+                </div>
+                <div class="stat-card stat-month">
+                  <div class="stat-label">This Month</div>
+                  <div class="stat-value" id="monthTotal">₹0</div>
+                </div>
+                <div class="stat-card stat-year">
+                  <div class="stat-label">This Year</div>
+                  <div class="stat-value" id="yearTotal">₹0</div>
+                </div>
+              </div>
+
+              <div class="tip-box">
+                <div class="tip-icon">💡</div>
+                <p>Check the <strong>Report</strong> tab for detailed breakdown and trends</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header-row">
+              <div>
+                <h2>Recent Expenses</h2>
+                <p class="subtitle">Latest entries shown first</p>
+              </div>
+              <div class="badge" id="countPill">0 items</div>
+            </div>
+
+            <div class="table-container">
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Note</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="expenseList"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- REPORT TAB -->
+        <section class="panel" id="report">
+          <div class="grid">
+            <div class="card">
+              <div class="card-header">
+                <h2>Category Distribution</h2>
+                <p class="subtitle">Where your money goes</p>
+              </div>
+              <div class="chart-container">
+                <canvas id="pieChart"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2>Daily Spending Trend</h2>
+                <p class="subtitle">Last 7 days overview</p>
+              </div>
+              <div class="chart-container">
+                <canvas id="barChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2>Filter & Analyze</h2>
+              <p class="subtitle">Customize your view with filters</p>
+            </div>
+
+            <div class="filter-grid">
+              <div class="field">
+                <label>From Date</label>
+                <input type="date" id="fromDate" />
+              </div>
+              <div class="field">
+                <label>To Date</label>
+                <input type="date" id="toDate" />
+              </div>
+              <div class="field">
+                <label>Category</label>
+                <select id="filterCategory">
+                  <option value="">All Categories</option>
+                  <option>Food</option>
+                  <option>Travel</option>
+                  <option>Shopping</option>
+                  <option>Bills</option>
+                  <option>Entertainment</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="field-actions">
+                <button id="applyFilterBtn" class="btn btn-primary">Apply</button>
+                <button id="clearFilterBtn" class="btn btn-secondary">Clear</button>
+              </div>
+            </div>
+
+            <div class="result-cards">
+              <div class="result-card">
+                <div class="result-label">Filtered Total</div>
+                <div class="result-value" id="filteredTotal">₹0</div>
+              </div>
+              <div class="result-card">
+                <div class="result-label">Filtered Count</div>
+                <div class="result-value" id="filteredCount">0</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TIPS TAB -->
+        <section class="panel" id="tips">
+          <div class="card">
+            <div class="card-header">
+              <h2>Smart Financial Tips</h2>
+              <p class="subtitle">AI-style insights based on your spending patterns</p>
+            </div>
+
+            <div class="action-row">
+              <button id="generateTipsBtn" class="btn btn-primary">
+                <span class="btn-icon">✨</span>
+                Generate Tips
+              </button>
+              <div class="badge">Powered by your data</div>
+            </div>
+
+            <ul class="tips-list" id="tipsList">
+              <li class="tip-placeholder">Click "Generate Tips" to get personalized advice</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ANALYZE TAB -->
+        <section class="panel" id="analyze">
+          <div class="grid">
+            <div class="card">
+              <div class="card-header">
+                <h2>Key Insights</h2>
+                <p class="subtitle">Comprehensive spending overview</p>
+              </div>
+              <div class="insights-grid" id="insightsBox"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2>Top Category</h2>
+                <p class="subtitle">Your highest spending area</p>
+              </div>
+              <div class="highlight-box" id="topCategoryBox">
+                <div class="highlight-content">—</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CHAT TAB -->
+        <section class="panel" id="chat">
+          <div class="card">
+            <div class="card-header">
+              <h2>AI Assistant</h2>
+              <p class="subtitle">Chat about your expenses (Coming Soon)</p>
+            </div>
+
+            <div class="chat-container" id="chatBox">
+              <div class="message message-bot">
+                <div class="message-avatar">🤖</div>
+                <div class="message-bubble">
+                  Hi! I'm your financial assistant. Ask me about your spending patterns! (This feature is coming soon)
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-input-area">
+              <input id="chatInput" type="text" placeholder="Ask about your expenses..." />
+              <button id="sendChatBtn" class="btn btn-primary">
+                <span class="btn-icon">→</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <p>Built with ❤️ • LocalStorage • Ready for AI Integration</p>
+      </footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
