@@ -942,3 +942,21 @@ select{
   .top-actions{ width: 100%; justify-content: flex-end; }
   .tab span:last-child{ display: none; }
 }
+/* floating card effect */
+.panel{
+  animation: floaty 6s ease-in-out infinite;
+}
+.panel:nth-child(2){ animation-delay: .8s; }
+
+@keyframes floaty{
+  0%,100%{ transform: translateY(0); }
+  50%{ transform: translateY(-6px); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .panel{ animation: none; }
+}
+@media (max-width: 768px){
+  .bg{ background-attachment: scroll; }
+}
+
