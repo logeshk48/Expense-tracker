@@ -288,3 +288,65 @@ th{
   }
 }
 body { border: 10px solid red !important; }
+/* ===============================
+   MOBILE FIX PACK (Phone UI)
+   =============================== */
+
+/* 1) Stop background fixed issues on mobile */
+@media (max-width: 768px){
+  .bg{ background-attachment: scroll; }
+}
+
+/* 2) Topbar should wrap nicely */
+@media (max-width: 768px){
+  .topbar{
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .topbar .btn{
+    width: 100%;
+  }
+}
+
+/* 3) Grid should become single column */
+@media (max-width: 900px){
+  .grid{ grid-template-columns: 1fr; }
+}
+
+/* 4) Summary cards should stack better */
+@media (max-width: 520px){
+  .summary{ grid-template-columns: 1fr; }
+}
+
+/* 5) Filters + actions should not overflow */
+@media (max-width: 768px){
+  .filters{
+    grid-template-columns: 1fr;
+  }
+  .actions{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .actions .btn{
+    width: 100%;
+  }
+}
+
+/* 6) Table overflow should scroll smoothly */
+.table-wrap{
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 7) Reduce table minimum width on small screens (prevents broken layout) */
+@media (max-width: 520px){
+  .table{
+    min-width: 520px; /* allows horizontal scroll instead of breaking page */
+  }
+}
+
+/* 8) Prevent text from pushing layout */
+th, td{
+  white-space: nowrap;
+}
