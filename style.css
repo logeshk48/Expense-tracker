@@ -29,14 +29,21 @@ body{
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(900px 600px at 20% 10%, rgba(120,170,255,.20), transparent 60%),
-    radial-gradient(900px 600px at 80% 20%, rgba(255,120,200,.16), transparent 55%),
-    radial-gradient(1000px 700px at 50% 90%, rgba(0,255,200,.10), transparent 65%),
-    linear-gradient(135deg, var(--bg1), var(--bg2));
-  transform: translate3d(var(--bg-x,0px), var(--bg-y,0px), 0);
-  will-change: transform;
+    radial-gradient(circle at 10% 20%, rgba(180,0,255,.25), transparent 40%),
+    radial-gradient(circle at 90% 30%, rgba(0,200,255,.20), transparent 40%),
+    linear-gradient(135deg, #0b0618, #120a2a, #1a0d33);
+  background-size: 200% 200%;
+  animation: bgMove 18s ease infinite;
   z-index: -3;
 }
+
+
+@keyframes bgMove{
+  0%{background-position: 0% 50%}
+  50%{background-position: 100% 50%}
+  100%{background-position: 0% 50%}
+}
+
 
 .bg-overlay{
   position: fixed;
