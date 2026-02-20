@@ -517,3 +517,9 @@ input:focus, select:focus{border-color: rgba(255,255,255,.35); background: rgba(
   50%{background-position: 100% 50%}
   100%{background-position: 0% 50%}
 }
+@media (max-width: 480px){
+  .card{ padding: 14px; }
+  .topbar{ gap: 8px; }
+  .brand-text h1{ font-size: 16px; }
+  .btn{ font-size: 13px; padding: 8px 10px; }
+}
