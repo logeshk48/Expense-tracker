@@ -29,11 +29,12 @@ body{
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(circle at 10% 20%, rgba(180,0,255,.25), transparent 40%),
-    radial-gradient(circle at 90% 30%, rgba(0,200,255,.20), transparent 40%),
-    linear-gradient(135deg, #0b0618, #120a2a, #1a0d33);
+    radial-gradient(circle at 20% 20%, rgba(0,255,200,.25), transparent 42%),
+    radial-gradient(circle at 80% 30%, rgba(0,140,255,.25), transparent 42%),
+    radial-gradient(circle at 50% 90%, rgba(255,0,150,.16), transparent 55%),
+    linear-gradient(135deg, #050d14, #071a24, #021018);
   background-size: 200% 200%;
-  animation: bgMove 18s ease infinite;
+  animation: bgMove 16s ease infinite;
   z-index: -3;
 }
 
@@ -505,6 +506,11 @@ input:focus, select:focus{border-color: rgba(255,255,255,.35); background: rgba(
 @media (prefers-reduced-motion: reduce){
   .animated-overlay{animation:none}
   .shape{display:none}
+}
+@keyframes bgMove{
+  0%{background-position: 0% 50%}
+  50%{background-position: 100% 50%}
+  100%{background-position: 0% 50%}
 }
 @keyframes bgMove{
   0%{background-position: 0% 50%}
