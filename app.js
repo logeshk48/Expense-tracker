@@ -126,6 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${(e.note || "").replaceAll("<","&lt;").replaceAll(">","&gt;")}</td>
         <td>
           <div class="row-actions">
+            <button class="icon-btn" data-edit="${e.id}">Edit</button>
             <button class="icon-btn" data-del="${e.id}">Delete</button>
           </div>
         </td>
@@ -255,13 +256,37 @@ document.addEventListener("DOMContentLoaded", () => {
   // Delete
   if (expenseList){
     expenseList.addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-del]");
-      if (!btn) return;
-      const id = btn.getAttribute("data-del");
-      expenses = expenses.filter(x => x.id !== id);
-      saveExpenses(expenses);
-      renderAll();
-    });
+  const delBtn = e.target.closest("[data-del]");
+  const editBtn = e.target.closest("[data-edit]");
+
+  // Delete
+  if (delBtn){
+    const id = delBtn.getAttribute("data-del");
+    expenses = expenses.filter(x => x.id !== id);
+    saveExpenses(expenses);
+    renderAll();
+    return;
+  }
+
+  // Edit (prefill form + remove old item)
+  if (editBtn){
+    const id = editBtn.getAttribute("data-edit");
+    const item = expenses.find(x => x.id === id);
+    if (!item) return;
+
+    // Prefill form
+    document.getElementById("amount").value = item.amount;
+    document.getElementById("category").value = item.category;
+    document.getElementById("date").value = item.date;
+    document.getElementById("note").value = item.note || "";
+
+    // Remove old record (will be re-added when user clicks Add Expense)
+    expenses = expenses.filter(x => x.id !== id);
+    saveExpenses(expenses);
+    renderAll();
+  }
+});
+    
   }
 
   // Export CSV
