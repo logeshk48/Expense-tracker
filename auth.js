@@ -1,5 +1,4 @@
-// auth.js (module) - Clean Email + Google Popup Login
-import { auth } from "./firebase-config.js?v=200";
+import { auth } from "./firebase-config.js?v=300";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -9,14 +8,17 @@ import {
   signInWithPopup
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-const PROFILE_KEY = "et_profile_v2";
+const PROFILE_KEY = "et_profile_v3";
 
-function setProfile({ name, email }) {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, email, ts: Date.now() }));
+function setProfile(user) {
+  const name = user.displayName || (user.email ? user.email.split("@")[0] : "User");
+  localStorage.setItem(PROFILE_KEY, JSON.stringify({
+    name,
+    email: user.email,
+    ts: Date.now()
+  }));
 }
-function getProfile() {
-  try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || "null"); } catch { return null; }
-}
+
 function clearProfile() {
   localStorage.removeItem(PROFILE_KEY);
 }
@@ -24,119 +26,104 @@ function clearProfile() {
 function isLoginPage() {
   return document.getElementById("loginForm") != null;
 }
+
 function isDashboardPage() {
   return location.pathname.toLowerCase().includes("dashboard.html");
 }
 
-function niceNameFromUser(user) {
-  if (!user) return "User";
-  if (user.displayName && user.displayName.trim()) return user.displayName.trim();
-  if (user.email) return user.email.split("@")[0];
-  return "User";
-}
-
-// 1) Protect pages (dashboard requires login)
+// Protect pages
 onAuthStateChanged(auth, (user) => {
   if (isDashboardPage() && !user) {
     location.href = "index.html";
-    return;
   }
 
-  // If login page and already logged in, go dashboard
   if (isLoginPage() && user) {
-    setProfile({ name: niceNameFromUser(user), email: user.email || "" });
+    setProfile(user);
     location.href = "dashboard.html";
-    return;
   }
 });
 
-// 2) Login page actions
-(function loginUI() {
+// Login & Signup UI
+(function () {
+
   const loginBtn = document.getElementById("loginBtn");
-  if (!loginBtn) return; // not on login page
+  if (!loginBtn) return;
 
   const signupBtn = document.getElementById("signupBtn");
   const googleBtn = document.getElementById("googleBtn");
 
   const emailEl = document.getElementById("email");
   const passwordEl = document.getElementById("password");
+  const confirmEl = document.getElementById("confirmPassword");
   const err = document.getElementById("loginError");
 
-  function readInputs() {
-    const email = (emailEl?.value || "").trim();
-    const pw = (passwordEl?.value || "").trim();
-    if (!email) return { error: "Enter your email." };
-    if (pw.length < 6) return { error: "Password must be at least 6 characters." };
-    return { email, pw };
+  function validateBasic() {
+    const email = emailEl.value.trim();
+    const password = passwordEl.value.trim();
+    if (!email) return "Enter email.";
+    if (password.length < 6) return "Password must be at least 6 characters.";
+    return null;
   }
 
+  // LOGIN
   loginBtn.addEventListener("click", async () => {
     err.textContent = "";
-    const v = readInputs();
-    if (v.error) return (err.textContent = v.error);
+
+    const error = validateBasic();
+    if (error) return err.textContent = error;
 
     try {
-      const res = await signInWithEmailAndPassword(auth, v.email, v.pw);
-      setProfile({ name: niceNameFromUser(res.user), email: res.user.email || v.email });
+      const res = await signInWithEmailAndPassword(
+        auth,
+        emailEl.value.trim(),
+        passwordEl.value.trim()
+      );
+      setProfile(res.user);
       location.href = "dashboard.html";
     } catch (e) {
-      console.error(e);
-      err.textContent = "Login failed. Check email/password or sign up first.";
+      err.textContent = "Invalid email or password.";
     }
   });
 
+  // SIGN UP
   signupBtn.addEventListener("click", async () => {
     err.textContent = "";
-    const v = readInputs();
-    if (v.error) return (err.textContent = v.error);
+
+    const error = validateBasic();
+    if (error) return err.textContent = error;
+
+    if (passwordEl.value !== confirmEl.value) {
+      return err.textContent = "Passwords do not match.";
+    }
 
     try {
-      const res = await createUserWithEmailAndPassword(auth, v.email, v.pw);
-      setProfile({ name: niceNameFromUser(res.user), email: res.user.email || v.email });
+      const res = await createUserWithEmailAndPassword(
+        auth,
+        emailEl.value.trim(),
+        passwordEl.value.trim()
+      );
+      setProfile(res.user);
       location.href = "dashboard.html";
     } catch (e) {
-      console.error(e);
-      err.textContent = "Signup failed. Email may already exist.";
+      if (e.code === "auth/email-already-in-use") {
+        err.textContent = "Email already registered. Please login.";
+      } else {
+        err.textContent = "Signup failed. Try again.";
+      }
     }
   });
 
+  // GOOGLE LOGIN
   googleBtn.addEventListener("click", async () => {
     err.textContent = "";
     try {
       const provider = new GoogleAuthProvider();
       const res = await signInWithPopup(auth, provider);
-
-      const user = res.user;
-      setProfile({
-        name: niceNameFromUser(user),
-        email: user.email || ""
-      });
-
+      setProfile(res.user);
       location.href = "dashboard.html";
     } catch (e) {
-      console.error(e);
-      err.textContent =
-        "Google sign-in failed. If popup blocked, allow popups and try again.";
+      err.textContent = "Google sign-in failed.";
     }
   });
-})();
 
-// 3) Dashboard welcome + logout
-(function dashboardUI() {
-  const logoutBtn = document.getElementById("logoutBtn");
-  const welcomeLine = document.getElementById("welcomeLine");
-
-  const p = getProfile();
-  if (welcomeLine) {
-    const name = p?.name || "User";
-    welcomeLine.textContent = `Welcome, ${name} • Smart Financial Insights`;
-  }
-
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", async () => {
-      await signOut(auth);
-      clearProfile();
-      location.href = "index.html";
-    });
-  }
 })();

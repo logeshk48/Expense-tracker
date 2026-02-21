@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense Tracker • Login</title>
 
-  <link rel="stylesheet" href="style.css?v=200">
-
+  <link rel="stylesheet" href="style.css?v=300">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -26,29 +25,34 @@
         <p class="login-subtitle">Cloud Powered Fintech Dashboard</p>
       </div>
 
-      <form id="loginForm" class="login-form" autocomplete="on">
+      <form id="loginForm" class="login-form">
 
         <div class="field">
           <label>Email</label>
-          <input id="email" type="email" placeholder="e.g., logesh@gmail.com" required autocomplete="email" />
+          <input id="email" type="email" required placeholder="e.g., yourname@gmail.com">
         </div>
 
         <div class="field">
           <label>Password</label>
-          <input id="password" type="password" minlength="6" placeholder="Minimum 6 characters" required autocomplete="current-password" />
+          <input id="password" type="password" required minlength="6" placeholder="Minimum 6 characters">
+        </div>
+
+        <div class="field">
+          <label>Confirm Password (Sign Up only)</label>
+          <input id="confirmPassword" type="password" placeholder="Re-enter password">
         </div>
 
         <div class="login-actions">
-          <button id="loginBtn" class="btn btn-primary btn-large" type="button">
-            <span class="btn-icon">→</span> Login
+          <button id="loginBtn" type="button" class="btn btn-primary btn-large">
+            → Login
           </button>
 
-          <button id="signupBtn" class="btn btn-secondary btn-large" type="button">
-            <span class="btn-icon">＋</span> Sign Up
+          <button id="signupBtn" type="button" class="btn btn-secondary btn-large">
+            + Create Account
           </button>
 
-          <button id="googleBtn" class="btn btn-secondary btn-large" type="button">
-            <span class="btn-icon">G</span> Continue with Google
+          <button id="googleBtn" type="button" class="btn btn-secondary btn-large">
+            G Continue with Google
           </button>
         </div>
 
@@ -58,8 +62,7 @@
     </section>
   </main>
 
-  <!-- IMPORTANT: must be module -->
-  <script type="module" src="auth.js?v=200"></script>
+  <script type="module" src="auth.js?v=300"></script>
 
 </body>
 </html>
