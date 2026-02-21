@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense Tracker • Login</title>
 
-  <link rel="stylesheet" href="style.css?v=40">
+  <link rel="stylesheet" href="style.css?v=200">
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,7 +19,6 @@
   <div class="animated-overlay"></div>
 
   <main class="login-wrap">
-
     <section class="login-card glass">
 
       <div class="login-brand">
@@ -27,49 +26,40 @@
         <p class="login-subtitle">Cloud Powered Fintech Dashboard</p>
       </div>
 
-      <form id="loginForm" class="login-form">
-
-        <div class="field">
-          <label>Full Name</label>
-          <input id="fullName" type="text" placeholder="e.g., Logesh" required />
-        </div>
+      <form id="loginForm" class="login-form" autocomplete="on">
 
         <div class="field">
           <label>Email</label>
-          <input id="email" type="email" placeholder="e.g., logesh@gmail.com" required />
+          <input id="email" type="email" placeholder="e.g., logesh@gmail.com" required autocomplete="email" />
         </div>
 
         <div class="field">
           <label>Password</label>
-          <input id="password" type="password" minlength="6" placeholder="Minimum 6 characters" required />
+          <input id="password" type="password" minlength="6" placeholder="Minimum 6 characters" required autocomplete="current-password" />
         </div>
 
         <div class="login-actions">
-
           <button id="loginBtn" class="btn btn-primary btn-large" type="button">
             <span class="btn-icon">→</span> Login
           </button>
 
           <button id="signupBtn" class="btn btn-secondary btn-large" type="button">
-            <span class="btn-icon">＋</span> Create Account
+            <span class="btn-icon">＋</span> Sign Up
           </button>
 
           <button id="googleBtn" class="btn btn-secondary btn-large" type="button">
             <span class="btn-icon">G</span> Continue with Google
           </button>
-
         </div>
 
         <p id="loginError" class="login-error"></p>
 
       </form>
-
     </section>
-
   </main>
 
   <!-- IMPORTANT: must be module -->
-  <script type="module" src="auth.js?v=120"></script>
+  <script type="module" src="auth.js?v=200"></script>
 
 </body>
 </html>
