@@ -1,4 +1,4 @@
-import { auth } from "./firebase-config.js?v=300";
+import { auth } from "./firebase-config.js?v=400";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -8,7 +8,7 @@ import {
   signInWithPopup
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-const PROFILE_KEY = "et_profile_v3";
+const PROFILE_KEY = "et_profile_v4";
 
 function setProfile(user) {
   const name = user.displayName || (user.email ? user.email.split("@")[0] : "User");
@@ -43,78 +43,85 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// Login & Signup UI
+// Toggle Logic
 (function () {
 
-  const loginBtn = document.getElementById("loginBtn");
-  if (!loginBtn) return;
+  const mainBtn = document.getElementById("mainBtn");
+  if (!mainBtn) return;
 
-  const signupBtn = document.getElementById("signupBtn");
-  const googleBtn = document.getElementById("googleBtn");
+  const switchMode = document.getElementById("switchMode");
+  const switchText = document.getElementById("switchText");
+  const confirmField = document.getElementById("confirmField");
 
   const emailEl = document.getElementById("email");
   const passwordEl = document.getElementById("password");
   const confirmEl = document.getElementById("confirmPassword");
   const err = document.getElementById("loginError");
 
-  function validateBasic() {
+  let isSignup = false; // default = login
+
+  switchMode.addEventListener("click", (e) => {
+    e.preventDefault();
+    isSignup = !isSignup;
+
+    err.textContent = "";
+    passwordEl.value = "";
+    if (confirmEl) confirmEl.value = "";
+
+    if (isSignup) {
+      mainBtn.textContent = "Create Account";
+      confirmField.style.display = "block";
+      switchText.textContent = "Already have an account?";
+      switchMode.textContent = "Login";
+    } else {
+      mainBtn.textContent = "Login";
+      confirmField.style.display = "none";
+      switchText.textContent = "Don't have an account?";
+      switchMode.textContent = "Create Account";
+    }
+  });
+
+  mainBtn.addEventListener("click", async () => {
+
+    err.textContent = "";
     const email = emailEl.value.trim();
     const password = passwordEl.value.trim();
-    if (!email) return "Enter email.";
-    if (password.length < 6) return "Password must be at least 6 characters.";
-    return null;
-  }
 
-  // LOGIN
-  loginBtn.addEventListener("click", async () => {
-    err.textContent = "";
+    if (!email) return err.textContent = "Enter email.";
+    if (password.length < 6) return err.textContent = "Password must be at least 6 characters.";
 
-    const error = validateBasic();
-    if (error) return err.textContent = error;
-
-    try {
-      const res = await signInWithEmailAndPassword(
-        auth,
-        emailEl.value.trim(),
-        passwordEl.value.trim()
-      );
-      setProfile(res.user);
-      location.href = "dashboard.html";
-    } catch (e) {
-      err.textContent = "Invalid email or password.";
-    }
-  });
-
-  // SIGN UP
-  signupBtn.addEventListener("click", async () => {
-    err.textContent = "";
-
-    const error = validateBasic();
-    if (error) return err.textContent = error;
-
-    if (passwordEl.value !== confirmEl.value) {
-      return err.textContent = "Passwords do not match.";
-    }
-
-    try {
-      const res = await createUserWithEmailAndPassword(
-        auth,
-        emailEl.value.trim(),
-        passwordEl.value.trim()
-      );
-      setProfile(res.user);
-      location.href = "dashboard.html";
-    } catch (e) {
-      if (e.code === "auth/email-already-in-use") {
-        err.textContent = "Email already registered. Please login.";
-      } else {
-        err.textContent = "Signup failed. Try again.";
+    if (isSignup) {
+      if (password !== confirmEl.value) {
+        return err.textContent = "Passwords do not match.";
       }
+
+      try {
+        const res = await createUserWithEmailAndPassword(auth, email, password);
+        setProfile(res.user);
+        location.href = "dashboard.html";
+      } catch (e) {
+        if (e.code === "auth/email-already-in-use") {
+          err.textContent = "Email already registered. Please login.";
+        } else {
+          err.textContent = "Signup failed.";
+        }
+      }
+
+    } else {
+
+      try {
+        const res = await signInWithEmailAndPassword(auth, email, password);
+        setProfile(res.user);
+        location.href = "dashboard.html";
+      } catch (e) {
+        err.textContent = "Invalid email or password.";
+      }
+
     }
   });
 
-  // GOOGLE LOGIN
-  googleBtn.addEventListener("click", async () => {
+  // Google
+  document.getElementById("googleBtn").addEventListener("click", async () => {
     err.textContent = "";
     try {
       const provider = new GoogleAuthProvider();
@@ -126,4 +133,16 @@ onAuthStateChanged(auth, (user) => {
     }
   });
 
+})();
+
+// Logout
+(function(){
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (!logoutBtn) return;
+
+  logoutBtn.addEventListener("click", async () => {
+    await signOut(auth);
+    clearProfile();
+    location.href = "index.html";
+  });
 })();
