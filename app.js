@@ -1,11 +1,11 @@
 
-import { auth } from "./firebase-config.js?v=30";
+import { auth } from "./firebase-config.js?v=99";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import {
   loadExpensesFromCloud,
   saveExpenseToCloud,
   deleteExpenseFromCloud
-} from "./firebase-db.js?v=20";
+} from "./firebase-db.js?v=99";
 
 function money(n) {
   return `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
@@ -30,8 +30,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!location.pathname.toLowerCase().includes("dashboard.html")) return;
 
   // Must be logged in (local login)
-  const authLocal = JSON.parse(localStorage.getItem("et_auth_v1") || "null");
-  if (!authLocal) { location.href = "index.html"; return; }
+  
 
   // Firebase anonymous user
   const uid = await new Promise((resolve) => {
