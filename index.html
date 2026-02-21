@@ -4,10 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense Tracker • Login</title>
-  <link rel="stylesheet" href="style.css?v=7">
 
-
-
+  <link rel="stylesheet" href="style.css?v=40">
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,95 +13,63 @@
 </head>
 
 <body class="login-body">
+
   <div class="bg-4k"></div>
   <div class="bg-overlay"></div>
   <div class="animated-overlay"></div>
 
-  <div class="floating-shapes">
-    <div class="shape shape-1"></div>
-    <div class="shape shape-2"></div>
-    <div class="shape shape-3"></div>
-  </div>
-
   <main class="login-wrap">
-    <section class="login-card glass">
-      <div class="login-brand">
-        <div class="login-logo">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div>
-          <h1 class="login-title">Expense Tracker</h1>
-          <p class="login-subtitle">Animated Glass Fintech Dashboard</p>
-        </div>
-      </div>
 
-      <div class="login-kpis">
-        <div class="pill">⚡ Fast</div>
-        <div class="pill">🔒 Private</div>
-        <div class="pill">📊 Charts</div>
-        <div class="pill">✨ Premium UI</div>
+    <section class="login-card glass">
+
+      <div class="login-brand">
+        <h1 class="login-title">Expense Tracker</h1>
+        <p class="login-subtitle">Cloud Powered Fintech Dashboard</p>
       </div>
 
       <form id="loginForm" class="login-form">
 
-  <div class="field">
-    <label>Full Name</label>
-    <input id="fullName" type="text" placeholder="e.g., Kavinkumar" required />
-  </div>
+        <div class="field">
+          <label>Full Name</label>
+          <input id="fullName" type="text" placeholder="e.g., Logesh" required />
+        </div>
 
-  <div class="field">
-    <label>Email</label>
-    <input id="email" type="email" placeholder="e.g., logesh@gmail.com" required />
-  </div>
+        <div class="field">
+          <label>Email</label>
+          <input id="email" type="email" placeholder="e.g., logesh@gmail.com" required />
+        </div>
 
-  <div class="field">
-    <label>Password</label>
-    <input id="password" type="password" minlength="6" placeholder="Minimum 6 characters" required />
-  </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="password" type="password" minlength="6" placeholder="Minimum 6 characters" required />
+        </div>
 
-        <button class="btn btn-primary btn-large" type="submit">
-          <span class="btn-icon">→</span> Enter Dashboard
-        </button>
+        <div class="login-actions">
 
-        <p class="login-hint">
-          First time? Enter your name + 4-digit PIN. Saved locally on this device.
-        </p>
+          <button id="loginBtn" class="btn btn-primary btn-large" type="button">
+            <span class="btn-icon">→</span> Login
+          </button>
+
+          <button id="signupBtn" class="btn btn-secondary btn-large" type="button">
+            <span class="btn-icon">＋</span> Create Account
+          </button>
+
+          <button id="googleBtn" class="btn btn-secondary btn-large" type="button">
+            <span class="btn-icon">G</span> Continue with Google
+          </button>
+
+        </div>
+
         <p id="loginError" class="login-error"></p>
+
       </form>
+
     </section>
 
-    <section class="login-side">
-      <div class="hero glass">
-        <h2>Track daily. Understand monthly. Win yearly.</h2>
-        <p>Save expenses, view charts, analyze trends, and get smart tips.</p>
-
-        <div class="hero-stats">
-          <div class="hero-stat">
-            <div class="k">Today</div>
-            <div class="v" id="heroToday">₹0</div>
-          </div>
-          <div class="hero-stat">
-            <div class="k">This Month</div>
-            <div class="v" id="heroMonth">₹0</div>
-          </div>
-          <div class="hero-stat">
-            <div class="k">Entries</div>
-            <div class="v" id="heroCount">0</div>
-          </div>
-        </div>
-
-        <div class="hero-note">
-          <span>💡</span>
-          <div>Premium glass UI + 4K background + animations.</div>
-        </div>
-      </div>
-    </section>
   </main>
 
-  <script src="auth.js"></script>
+  <!-- IMPORTANT: must be module -->
+  <script type="module" src="auth.js?v=40"></script>
+
 </body>
 </html>
