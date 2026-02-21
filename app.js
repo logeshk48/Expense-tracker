@@ -9,7 +9,11 @@ function money(n) {
   return `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 function ymd(d) { return d.toISOString().slice(0, 10); }
-function parseDateSafe(s){ return new Date((s || "") + "T00:00:00"); }
+function parseDateSafe(s){
+  if (!s) return new Date(0);
+  const [y,m,d] = s.split("-").map(Number);
+  return new Date(y, (m||1)-1, d||1); // local midnight, no timezone shift
+}
 
 function startOfWeek(date){
   const d = new Date(date);
