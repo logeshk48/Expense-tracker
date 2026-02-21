@@ -1,4 +1,6 @@
-import { ensureAnonAuth } from "./firebase-config.js?v=20";
+
+import { auth } from "./firebase-config.js?v=30";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import {
   loadExpensesFromCloud,
   saveExpenseToCloud,
@@ -32,8 +34,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!authLocal) { location.href = "index.html"; return; }
 
   // Firebase anonymous user
-  const user = await ensureAnonAuth();
-  const uid = user.uid;
+  const uid = await new Promise((resolve) => {
+  onAuthStateChanged(auth, (user) => resolve(user ? user.uid : null));
+});
+if (!uid) { location.href = "index.html"; return; }
 
   // Elements (Quick Overview)
   const todayTotalEl = document.getElementById("todayTotal");
