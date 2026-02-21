@@ -68,6 +68,21 @@ onAuthStateChanged(auth, (user) => {
   const toggleConfirm = document.getElementById("toggleConfirm");
 
   let isSignup = false; // default = login
+  // Mode pill UI
+const modeDot = document.getElementById("modeDot");
+const modeLabel = document.getElementById("modeLabel");
+
+function setModeUI(){
+  if (!modeDot || !modeLabel) return;
+  if (isSignup){
+    modeDot.classList.add("signup");
+    modeLabel.textContent = "Sign Up Mode";
+  } else {
+    modeDot.classList.remove("signup");
+    modeLabel.textContent = "Login Mode";
+  }
+}
+setModeUI();
 
   // ----- Eye icon toggles -----
   function attachEyeToggle(input, icon) {

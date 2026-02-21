@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense Tracker • Login</title>
 
-  <link rel="stylesheet" href="style.css?v=500">
+  <link rel="stylesheet" href="style.css?v=501">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -25,6 +25,12 @@
         <p class="login-subtitle">Cloud Powered Fintech Dashboard</p>
       </div>
 
+      <!-- Mode pill (Login/Signup indicator) -->
+      <div class="mode-pill" id="modePill">
+        <span class="mode-dot" id="modeDot"></span>
+        <span id="modeLabel">Login Mode</span>
+      </div>
+
       <form id="loginForm" class="login-form" autocomplete="on">
 
         <div class="field">
@@ -32,64 +38,41 @@
           <input id="email" type="email" required placeholder="e.g., yourname@gmail.com" autocomplete="email" />
         </div>
 
-        <!-- Password with eye icon -->
         <div class="field">
           <label>Password</label>
-          <div style="position:relative;">
+          <div class="pw-wrap">
             <input id="password" type="password" required minlength="6" placeholder="Minimum 6 characters" autocomplete="current-password" />
-            <span id="togglePassword" title="Show/Hide" style="
-              position:absolute;
-              right:12px;
-              top:50%;
-              transform:translateY(-50%);
-              cursor:pointer;
-              font-size:14px;
-              opacity:0.9;
-              user-select:none;">👁</span>
+            <span id="togglePassword" class="eye-btn" title="Show/Hide">👁</span>
           </div>
         </div>
 
-        <!-- Confirm Password (hidden until signup mode) -->
         <div class="field" id="confirmField" style="display:none;">
           <label>Confirm Password</label>
-          <div style="position:relative;">
+          <div class="pw-wrap">
             <input id="confirmPassword" type="password" placeholder="Re-enter password" autocomplete="new-password" />
-            <span id="toggleConfirm" title="Show/Hide" style="
-              position:absolute;
-              right:12px;
-              top:50%;
-              transform:translateY(-50%);
-              cursor:pointer;
-              font-size:14px;
-              opacity:0.9;
-              user-select:none;">👁</span>
+            <span id="toggleConfirm" class="eye-btn" title="Show/Hide">👁</span>
           </div>
         </div>
 
-        <!-- Main button: Login / Create Account -->
         <button id="mainBtn" type="button" class="btn btn-primary btn-large">
           Login
         </button>
 
-        <!-- Forgot password (login only) -->
-        <p id="forgotWrap" style="text-align:center; margin-top:8px;">
-          <a href="#" id="forgotPassword" style="color:#fff; font-size:14px; text-decoration:none;">
-            Forgot Password?
-          </a>
-        </p>
+        <!-- Small links row -->
+        <div class="mini-links">
+          <a href="#" id="forgotPassword" class="link-btn">Forgot password?</a>
 
-        <!-- Switch Mode -->
-        <p style="text-align:center; margin-top:10px; font-size:14px;">
-          <span id="switchText">Don't have an account?</span>
-          <a href="#" id="switchMode" style="color:#fff; font-weight:600; text-decoration:none;">
-            Create Account
-          </a>
-        </p>
+          <span>
+            <span id="switchText">New user?</span>
+            <a href="#" id="switchMode" class="link-btn">Create account</a>
+          </span>
+        </div>
 
-        <!-- Google -->
         <button id="googleBtn" type="button" class="btn btn-secondary btn-large" style="margin-top:12px;">
           Continue with Google
         </button>
+
+        <div class="notice">Tip: Use Google for fastest login ✨</div>
 
         <p id="loginError" class="login-error"></p>
 
@@ -97,7 +80,7 @@
     </section>
   </main>
 
-  <script type="module" src="auth.js?v=500"></script>
+  <script type="module" src="auth.js?v=501"></script>
 
 </body>
 </html>
