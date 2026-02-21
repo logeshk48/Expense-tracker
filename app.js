@@ -1,9 +1,9 @@
-import { ensureAnonAuth } from "./firebase-config.js";
+import { ensureAnonAuth } from "./firebase-config.js?v=20";
 import {
   loadExpensesFromCloud,
   saveExpenseToCloud,
   deleteExpenseFromCloud
-} from "./firebase-db.js";
+} from "./firebase-db.js?v=20";
 
 function money(n) {
   return `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
