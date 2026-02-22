@@ -4,8 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense Tracker • Dashboard</title>
-  <link rel="stylesheet" href="style.css?v=7" />
-
+  <link rel="stylesheet" href="style.css?v=700" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -137,7 +136,7 @@
 
             <div class="tip-box">
               <div class="tip-icon">💡</div>
-              <p>Check the <strong>Report</strong> tab for category breakdown and trends</p>
+              <p>Check the <strong>Report</strong> tab for breakdown, trends, heatmap & comparisons</p>
             </div>
           </div>
         </div>
@@ -168,8 +167,9 @@
         </div>
       </section>
 
-      <!-- REPORT TAB -->
+      <!-- REPORT TAB (UPGRADED) -->
       <section class="panel" id="report">
+
         <div class="grid">
           <div class="card">
             <div class="card-header">
@@ -178,6 +178,11 @@
             </div>
             <div class="chart-container">
               <canvas id="pieChart"></canvas>
+            </div>
+
+            <div class="mini-slab">
+              <div class="mini-slab-title">Top 3 Categories</div>
+              <div id="top3List" class="top3-list">—</div>
             </div>
           </div>
 
@@ -188,6 +193,60 @@
             </div>
             <div class="chart-container">
               <canvas id="barChart"></canvas>
+            </div>
+
+            <div class="mini-slab">
+              <div class="mini-slab-title">This Month vs Last Month</div>
+              <div id="momLine" class="mom-line">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <div class="card-header">
+              <h2>Monthly Trend</h2>
+              <p class="subtitle">Last 6 months spending</p>
+            </div>
+            <div class="chart-container">
+              <canvas id="monthlyLineChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2>Budget vs Actual</h2>
+              <p class="subtitle">Set a monthly budget & compare</p>
+            </div>
+
+            <div class="budget-row">
+              <div class="field">
+                <label>Monthly Budget (₹)</label>
+                <input id="budgetInput" type="number" placeholder="e.g., 15000" />
+              </div>
+              <button id="saveBudgetBtn" class="btn btn-secondary">Save Budget</button>
+            </div>
+
+            <div class="chart-container">
+              <canvas id="budgetChart"></canvas>
+            </div>
+            <div class="notice" id="budgetNote">Tip: Save budget once. It stays in your browser.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Spending Heatmap</h2>
+            <p class="subtitle">GitHub-style intensity (last 16 weeks)</p>
+          </div>
+
+          <div class="heatmap-wrap">
+            <div class="heatmap-months" id="heatmapMonths"></div>
+            <div class="heatmap-body">
+              <div class="heatmap-days">
+                <div>Mon</div><div>Wed</div><div>Fri</div>
+              </div>
+              <div class="heatmap-grid" id="heatmapGrid"></div>
             </div>
           </div>
         </div>
@@ -237,6 +296,7 @@
             </div>
           </div>
         </div>
+
       </section>
 
       <!-- TIPS TAB -->
@@ -244,7 +304,7 @@
         <div class="card">
           <div class="card-header">
             <h2>Smart Financial Tips</h2>
-            <p class="subtitle">AI-powered insights based on your spending patterns</p>
+            <p class="subtitle">Rule-based tips from your actual spending</p>
           </div>
 
           <div class="action-row">
@@ -255,7 +315,7 @@
           </div>
 
           <ul class="tips-list" id="tipsList">
-            <li class="tip-placeholder">Click "Generate Tips" to get personalized financial advice</li>
+            <li class="tip-placeholder">Click "Generate Tips" to get personalized advice</li>
           </ul>
         </div>
       </section>
@@ -288,17 +348,10 @@
         <div class="card">
           <div class="card-header">
             <h2>AI Assistant</h2>
-            <p class="subtitle">Chat about your expenses (Coming Soon)</p>
+            <p class="subtitle">Ask: “this month total?”, “top category?”, “last 7 days?”</p>
           </div>
 
-          <div class="chat-container" id="chatBox">
-            <div class="message message-bot">
-              <div class="message-avatar">🤖</div>
-              <div class="message-bubble">
-                Hi! I'm your financial assistant. Ask me about your spending patterns! (Coming Soon)
-              </div>
-            </div>
-          </div>
+          <div class="chat-container" id="chatBox"></div>
 
           <div class="chat-input-area">
             <input id="chatInput" type="text" placeholder="Ask about your expenses..." />
@@ -311,10 +364,11 @@
     </main>
 
     <footer class="footer">
-      <p>Built with ❤️ • LocalStorage • Ready for AI Integration</p>
+      <p>Built with ❤️ • Firebase • Charts • Heatmap</p>
     </footer>
   </div>
 
-  <script type="module" src="auth.js?v=120"></script>
-  <script type="module" src="app.js?v=120"></script>
+  <script type="module" src="auth.js?v=700"></script>
+  <script type="module" src="app.js?v=700"></script>
+</body>
 </html>
