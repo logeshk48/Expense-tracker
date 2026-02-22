@@ -455,11 +455,30 @@ document.addEventListener("DOMContentLoaded", async () => {
       type: "doughnut",
       data: {
         labels: catTotals.map(x => x.category),
-        datasets: [{ data: catTotals.map(x => x.total) }]
+        datasets: [{
+          data: catTotals.map(x => x.total),
+          borderWidth: 3,
+          borderColor: "rgba(255,255,255,0.8)",
+          hoverOffset: 10,
+          spacing: 6,
+          borderRadius: 10,
+          cutout: "65%"
+        }]
       },
       options: {
         responsive: true,
-        plugins: { legend: { display: true } }
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              color: "#ffffff",
+              font: {
+                size: 13,
+                weight: "600"
+              }
+            }
+          }
+        }
       }
     });
 
