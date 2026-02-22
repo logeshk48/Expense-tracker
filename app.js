@@ -1,10 +1,10 @@
-import { auth } from "./firebase-config.js?v=800";
+import { auth } from "./firebase-config.js?v=900";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import {
   loadExpensesFromCloud,
   saveExpenseToCloud,
   deleteExpenseFromCloud
-} from "./firebase-db.js?v=800";
+} from "./firebase-db.js?v=900";
 
 /* ---------------------------
    Helpers
@@ -427,6 +427,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  /* ---------------------------
+     ✅ PREMIUM PIE: gradients + % labels + shadow + glow + animation
+  --------------------------- */
+  function hexToRgb(hex){
+    const h = (hex || "").replace("#","");
+    if (h.length !== 6) return {r:255,g:255,b:255};
+    return {
+      r: parseInt(h.slice(0,2), 16),
+      g: parseInt(h.slice(2,4), 16),
+      b: parseInt(h.slice(4,6), 16)
+    };
+  }
+  function rgba(hex, a){
+    const {r,g,b} = hexToRgb(hex);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+
   function renderReport(){
     const catTotals = buildCategoryTotals(expenses);
     const last7 = lastNDaysTotals(expenses, 7);
@@ -437,23 +454,62 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderMoM(mom);
     renderHeatmap(expenses);
 
-    /* ===========================
-       ✅ PREMIUM PIE / DONUT CHART
-       =========================== */
+    // ---------- PREMIUM DONUT ----------
     const pieCanvas = document.getElementById("pieChart");
     const pieCtx = pieCanvas?.getContext("2d");
 
     const labels = catTotals.map(x => x.category);
     const values = catTotals.map(x => x.total);
+    const total = values.reduce((a,b)=> a + (Number(b)||0), 0) || 1;
 
-    // Center text plugin (Total)
+    // Base color per category (you can tweak)
+    const colorMap = {
+      Food: "#00FFC8",
+      Travel: "#7C4DFF",
+      Shopping: "#FF4DA6",
+      Bills: "#FFB020",
+      Entertainment: "#00B7FF",
+      Other: "#A0A7B4"
+    };
+
+    const baseColors = labels.map(l => colorMap[l] || "#A0A7B4");
+
+    // Build gradients per slice (radial)
+    function buildGradients(chart){
+      const { ctx, chartArea } = chart;
+      const cx = (chartArea.left + chartArea.right) / 2;
+      const cy = (chartArea.top + chartArea.bottom) / 2;
+
+      return baseColors.map((hex) => {
+        const g = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(chartArea.width, chartArea.height) / 2);
+        g.addColorStop(0, rgba(hex, 0.95));
+        g.addColorStop(0.55, rgba(hex, 0.55));
+        g.addColorStop(1, rgba(hex, 0.18));
+        return g;
+      });
+    }
+
+    // Shadow behind donut (subtle depth)
+    const donutShadow = {
+      id: "donutShadow",
+      beforeDatasetsDraw(chart){
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.45)";
+        ctx.shadowBlur = 18;
+        ctx.shadowOffsetY = 10;
+      },
+      afterDatasetsDraw(chart){
+        chart.ctx.restore();
+      }
+    };
+
+    // Center Total text
     const centerTotalPlugin = {
       id: "centerTotalPlugin",
-      afterDraw(chart) {
+      afterDraw(chart){
         const { ctx, chartArea } = chart;
         if (!chartArea) return;
-
-        const total = values.reduce((a, b) => a + (Number(b) || 0), 0);
 
         const x = (chartArea.left + chartArea.right) / 2;
         const y = (chartArea.top + chartArea.bottom) / 2;
@@ -462,49 +518,118 @@ document.addEventListener("DOMContentLoaded", async () => {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = "rgba(255,255,255,0.88)";
-        ctx.font = "700 18px DM Sans, sans-serif";
-        ctx.fillText("Total", x, y - 10);
-        ctx.font = "800 22px Syne, sans-serif";
-        ctx.fillText(money(total), x, y + 16);
+        ctx.font = "700 14px DM Sans, sans-serif";
+        ctx.fillText("Total", x, y - 12);
+
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.font = "800 20px Syne, sans-serif";
+        ctx.fillText(money(values.reduce((a,b)=>a+(Number(b)||0),0)), x, y + 12);
+        ctx.restore();
+      }
+    };
+
+    // Percentage labels inside slices
+    const percentLabels = {
+      id: "percentLabels",
+      afterDatasetsDraw(chart){
+        const meta = chart.getDatasetMeta(0);
+        if (!meta?.data?.length) return;
+
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.fillStyle = "rgba(255,255,255,0.92)";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "700 12px DM Sans, sans-serif";
+
+        meta.data.forEach((arc, i) => {
+          const v = Number(values[i] || 0);
+          if (!v) return;
+
+          const pct = (v / total) * 100;
+          if (pct < 4) return; // hide tiny labels
+
+          const p = arc.getProps(["x","y","startAngle","endAngle","innerRadius","outerRadius"], true);
+          const angle = (p.startAngle + p.endAngle) / 2;
+          const r = (p.innerRadius + p.outerRadius) / 2;
+
+          const x = p.x + Math.cos(angle) * r;
+          const y = p.y + Math.sin(angle) * r;
+
+          ctx.fillText(`${pct.toFixed(0)}%`, x, y);
+        });
+
         ctx.restore();
       }
     };
 
     pieChart = ensureChart(pieCtx, pieChart, {
       type: "doughnut",
-      plugins: [centerTotalPlugin],
+      plugins: [donutShadow, centerTotalPlugin, percentLabels],
       data: {
         labels,
         datasets: [{
           data: values,
+          backgroundColor: baseColors.map(c => rgba(c, 0.55)), // replaced by gradients after create
           borderWidth: 2,
           borderColor: "rgba(255,255,255,0.85)",
-          hoverOffset: 12,
-          spacing: 6,
-          borderRadius: 12,
-          cutout: "68%",
+          spacing: 7,
+          borderRadius: 14,
+          cutout: "70%",
+
+          // Hover glow effect
+          hoverBorderWidth: 3,
+          hoverBorderColor: "rgba(255,255,255,0.98)",
+          hoverOffset: 14
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: 10 },
+        layout: { padding: 12 },
+        animation: {
+          duration: 1200,
+          easing: "easeOutQuart",
+          animateRotate: true,
+          animateScale: true
+        },
         plugins: {
           legend: {
             position: "bottom",
             labels: {
-              color: "rgba(255,255,255,0.85)",
-              boxWidth: 14,
-              boxHeight: 14,
+              color: "rgba(255,255,255,0.88)",
+              boxWidth: 12,
+              boxHeight: 12,
               padding: 14,
-              font: { size: 12, weight: "600" }
+              font: { size: 12, weight: "600" },
+              generateLabels(chart){
+                const ds = chart.data.datasets[0];
+                return chart.data.labels.map((l, i) => {
+                  const v = Number(ds.data[i] || 0);
+                  const pct = ((v / total) * 100);
+                  return {
+                    text: `${l} • ${pct.toFixed(0)}%`,
+                    fillStyle: baseColors[i],
+                    strokeStyle: "rgba(255,255,255,0.25)",
+                    lineWidth: 1,
+                    hidden: !chart.getDataVisibility(i),
+                    index: i
+                  };
+                });
+              }
+            },
+            onClick(e, legendItem, legend){
+              const i = legendItem.index;
+              legend.chart.toggleDataVisibility(i);
+              legend.chart.update();
             }
           },
           tooltip: {
             callbacks: {
               label: (ctx) => {
-                const v = ctx.parsed || 0;
-                return `${ctx.label}: ${money(v)}`;
+                const v = Number(ctx.parsed || 0);
+                const pct = (v / total) * 100;
+                return `${ctx.label}: ${money(v)} (${pct.toFixed(1)}%)`;
               }
             }
           }
@@ -512,19 +637,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
 
-    // Add subtle gradient per slice (premium feel)
+    // Apply gradients once chart area exists
     if (pieChart?.chartArea) {
-      const { left, top, right, bottom } = pieChart.chartArea;
-      const grads = values.map(() => {
-        const g = pieChart.ctx.createLinearGradient(left, top, right, bottom);
-        g.addColorStop(0, "rgba(255,255,255,0.28)");
-        g.addColorStop(1, "rgba(255,255,255,0.06)");
-        return g;
-      });
-      pieChart.data.datasets[0].backgroundColor = grads;
+      pieChart.data.datasets[0].backgroundColor = buildGradients(pieChart);
       pieChart.update();
     }
-    /* =========================== */
+    // ---------- END PREMIUM DONUT ----------
 
     // Last 7 days bar
     const barCtx = document.getElementById("barChart")?.getContext("2d");

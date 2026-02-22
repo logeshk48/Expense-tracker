@@ -711,3 +711,19 @@ input:focus, select:focus{border-color: rgba(255,255,255,.35); background: rgba(
 .chart-container {
   height: 320px;
 }
+/* ===== Premium donut effects ===== */
+.chart-container {
+  height: 340px; /* slightly bigger */
+}
+
+.chart-container canvas{
+  transition: filter .25s ease, transform .25s ease;
+  filter: drop-shadow(0 10px 22px rgba(0,0,0,.40));
+}
+
+.chart-container canvas:hover{
+  transform: translateY(-2px);
+  filter:
+    drop-shadow(0 14px 30px rgba(0,255,200,.18))
+    drop-shadow(0 10px 22px rgba(0,0,0,.48));
+}
