@@ -707,3 +707,7 @@ input:focus, select:focus{border-color: rgba(255,255,255,.35); background: rgba(
 .hm-2{ background: rgba(0,255,200,.22); }
 .hm-3{ background: rgba(0,255,200,.34); }
 .hm-4{ background: rgba(0,255,200,.50); }
+/* Chart sizes (important for premium look) */
+.chart-container {
+  height: 320px;
+}

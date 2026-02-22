@@ -1,10 +1,10 @@
-import { auth } from "./firebase-config.js?v=700";
+import { auth } from "./firebase-config.js?v=800";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import {
   loadExpensesFromCloud,
   saveExpenseToCloud,
   deleteExpenseFromCloud
-} from "./firebase-db.js?v=700";
+} from "./firebase-db.js?v=800";
 
 /* ---------------------------
    Helpers
@@ -113,10 +113,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   function setActiveTab(tabId){
     tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
     panels.forEach(p => p.classList.toggle("active", p.id === tabId));
-    if (tabId === "report") renderReport();     // render when opened
-    if (tabId === "tips") renderTipsPreview();  // optional
-    if (tabId === "analyze") renderAnalyze();   // render when opened
-    if (tabId === "chat") renderChatWelcome();  // render when opened
+    if (tabId === "report") renderReport();
+    if (tabId === "tips") renderTipsPreview();
+    if (tabId === "analyze") renderAnalyze();
+    if (tabId === "chat") renderChatWelcome();
   }
 
   tabBtns.forEach(btn => {
@@ -178,7 +178,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   function renderAll(){
     computeTotals();
     renderList();
-    // If user is already on report/analyze, refresh them too
     const activePanel = document.querySelector(".panel.active")?.id;
     if (activePanel === "report") renderReport();
     if (activePanel === "analyze") renderAnalyze();
@@ -339,7 +338,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const diff = thisTotal - lastTotal;
     const pct = lastTotal === 0 ? (thisTotal > 0 ? 100 : 0) : (diff / lastTotal) * 100;
-
     return { thisTotal, lastTotal, diff, pct };
   }
 
@@ -378,12 +376,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   function renderHeatmap(list){
     if (!heatmapGrid || !heatmapMonths) return;
 
-    // last 16 weeks (112 days)
     const totalDays = 16 * 7;
     const today = new Date();
     today.setHours(0,0,0,0);
 
-    // build days from oldest to newest
     const days = [];
     for (let i=totalDays-1; i>=0; i--){
       const d = new Date(today);
@@ -391,7 +387,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       days.push(d);
     }
 
-    // totals by date
     const byDate = new Map();
     for (const e of list){
       const key = e.date;
@@ -401,33 +396,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     const values = days.map(d => byDate.get(ymd(d)) || 0);
     const max = Math.max(1, ...values);
 
-    // month labels (rough)
     heatmapMonths.innerHTML = "";
     let lastMonth = -1;
     days.forEach((d, idx) => {
-      if (idx % 7 !== 0) return; // month label per week column
+      if (idx % 7 !== 0) return;
       const m = d.getMonth();
+      const div = document.createElement("div");
       if (m !== lastMonth){
         lastMonth = m;
-        const div = document.createElement("div");
         div.textContent = d.toLocaleString("en-US", { month:"short" });
-        heatmapMonths.appendChild(div);
       } else {
-        const div = document.createElement("div");
         div.textContent = "";
-        heatmapMonths.appendChild(div);
       }
+      heatmapMonths.appendChild(div);
     });
 
-    // grid: 16 columns × 7 rows
     heatmapGrid.innerHTML = "";
     for (let col=0; col<16; col++){
       for (let row=0; row<7; row++){
         const i = col*7 + row;
         const v = values[i] || 0;
         const intensity = clamp(v / max, 0, 1);
-
-        // map intensity to 5 levels
         const level = v === 0 ? 0 : intensity < 0.25 ? 1 : intensity < 0.5 ? 2 : intensity < 0.75 ? 3 : 4;
 
         const cell = document.createElement("div");
@@ -439,7 +428,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function renderReport(){
-    // base data
     const catTotals = buildCategoryTotals(expenses);
     const last7 = lastNDaysTotals(expenses, 7);
     const months6 = lastNMonthsTotals(expenses, 6);
@@ -449,38 +437,94 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderMoM(mom);
     renderHeatmap(expenses);
 
-    // Pie
-    const pieCtx = document.getElementById("pieChart")?.getContext("2d");
+    /* ===========================
+       ✅ PREMIUM PIE / DONUT CHART
+       =========================== */
+    const pieCanvas = document.getElementById("pieChart");
+    const pieCtx = pieCanvas?.getContext("2d");
+
+    const labels = catTotals.map(x => x.category);
+    const values = catTotals.map(x => x.total);
+
+    // Center text plugin (Total)
+    const centerTotalPlugin = {
+      id: "centerTotalPlugin",
+      afterDraw(chart) {
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
+
+        const total = values.reduce((a, b) => a + (Number(b) || 0), 0);
+
+        const x = (chartArea.left + chartArea.right) / 2;
+        const y = (chartArea.top + chartArea.bottom) / 2;
+
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "rgba(255,255,255,0.88)";
+        ctx.font = "700 18px DM Sans, sans-serif";
+        ctx.fillText("Total", x, y - 10);
+        ctx.font = "800 22px Syne, sans-serif";
+        ctx.fillText(money(total), x, y + 16);
+        ctx.restore();
+      }
+    };
+
     pieChart = ensureChart(pieCtx, pieChart, {
       type: "doughnut",
+      plugins: [centerTotalPlugin],
       data: {
-        labels: catTotals.map(x => x.category),
+        labels,
         datasets: [{
-          data: catTotals.map(x => x.total),
-          borderWidth: 3,
-          borderColor: "rgba(255,255,255,0.8)",
-          hoverOffset: 10,
+          data: values,
+          borderWidth: 2,
+          borderColor: "rgba(255,255,255,0.85)",
+          hoverOffset: 12,
           spacing: 6,
-          borderRadius: 10,
-          cutout: "65%"
+          borderRadius: 12,
+          cutout: "68%",
         }]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: 10 },
         plugins: {
           legend: {
             position: "bottom",
             labels: {
-              color: "#ffffff",
-              font: {
-                size: 13,
-                weight: "600"
+              color: "rgba(255,255,255,0.85)",
+              boxWidth: 14,
+              boxHeight: 14,
+              padding: 14,
+              font: { size: 12, weight: "600" }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const v = ctx.parsed || 0;
+                return `${ctx.label}: ${money(v)}`;
               }
             }
           }
         }
       }
     });
+
+    // Add subtle gradient per slice (premium feel)
+    if (pieChart?.chartArea) {
+      const { left, top, right, bottom } = pieChart.chartArea;
+      const grads = values.map(() => {
+        const g = pieChart.ctx.createLinearGradient(left, top, right, bottom);
+        g.addColorStop(0, "rgba(255,255,255,0.28)");
+        g.addColorStop(1, "rgba(255,255,255,0.06)");
+        return g;
+      });
+      pieChart.data.datasets[0].backgroundColor = grads;
+      pieChart.update();
+    }
+    /* =========================== */
 
     // Last 7 days bar
     const barCtx = document.getElementById("barChart")?.getContext("2d");
@@ -590,7 +634,6 @@ document.addEventListener("DOMContentLoaded", async () => {
      TIPS (rule-based)
   --------------------------- */
   function renderTipsPreview(){
-    // keep placeholder until user clicks
     if (!tipsList) return;
     if (!expenses.length) {
       tipsList.innerHTML = `<li class="tip-placeholder">Add some expenses to generate tips.</li>`;
@@ -654,7 +697,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const catTotals = buildCategoryTotals(expenses);
     const top = catTotals[0];
 
-    // Most expensive day
     const byDay = new Map();
     for (const e of expenses){
       byDay.set(e.date, (byDay.get(e.date) || 0) + Number(e.amount||0));
@@ -664,7 +706,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!bestDay || val > bestDay.val) bestDay = { date, val };
     }
 
-    // Avg
     const uniqueDays = new Set(expenses.map(e => e.date)).size || 1;
     const avgPerDay = total / uniqueDays;
 
