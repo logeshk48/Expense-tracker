@@ -1,5 +1,5 @@
-// auth.js (STABLE: Popup + Redirect fallback + Strong routing)
-import { auth } from "./firebase-config.js?v=901";
+// auth.js (WORKING: Popup + Redirect fallback + Always route to dashboard)
+import { auth } from "./firebase-config.js?v=999";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -20,7 +20,7 @@ function clearProfile(){ localStorage.removeItem(PROFILE_KEY); }
 const isLoginPage = () => document.getElementById("loginForm") != null;
 const isDashboardPage = () => location.pathname.toLowerCase().includes("dashboard.html");
 
-// ✅ 1) Handle redirect result ALWAYS (when coming back from Google)
+// 1) Handle redirect result (when coming back from Google)
 (async function handleRedirectResult(){
   try{
     const res = await getRedirectResult(auth);
@@ -29,27 +29,24 @@ const isDashboardPage = () => location.pathname.toLowerCase().includes("dashboar
       const email = res.user.email || "";
       setProfile({ name, email, ts: Date.now() });
 
-      // ✅ Always go to dashboard after Google auth
-      if (!isDashboardPage()) location.href = "dashboard.html";
+      // Always go to dashboard
+      location.href = "dashboard.html";
     }
-  }catch(e){
-    // If no redirect happened, ignore
-    // But if there is a real issue, show it on login page
+  } catch(e){
+    // show error on login page if any
     const errBox = document.getElementById("loginError");
-    if (errBox && e?.code) {
-      errBox.textContent = `Google sign-in error: ${e.code}`;
-    }
+    if (errBox && e?.code) errBox.textContent = `Google sign-in error: ${e.code}`;
     console.error("getRedirectResult error:", e);
   }
 })();
 
-// ✅ 2) Route protection (prevents dashboard without login)
+// 2) Route protection
 onAuthStateChanged(auth, (user) => {
   if (isDashboardPage() && !user) location.href = "index.html";
   if (isLoginPage() && user) location.href = "dashboard.html";
 });
 
-// ✅ 3) login/signup page logic
+// 3) Login/Signup UI
 (function loginUI(){
   const form = document.getElementById("loginForm");
   if (!form) return;
@@ -69,28 +66,28 @@ onAuthStateChanged(auth, (user) => {
   const confirmEl = document.getElementById("confirmPassword");
   const err = document.getElementById("loginError");
 
-  let mode = "login"; // "login" | "signup"
+  let mode = "login";
 
   function setMode(m){
     mode = m;
     err.textContent = "";
 
     if (mode === "login"){
-      modeLoginBtn.classList.add("active");
-      modeSignupBtn.classList.remove("active");
-      nameWrap.classList.add("hidden");
-      confirmWrap.classList.add("hidden");
+      modeLoginBtn?.classList.add("active");
+      modeSignupBtn?.classList.remove("active");
+      nameWrap?.classList.add("hidden");
+      confirmWrap?.classList.add("hidden");
       primaryBtn.innerHTML = `<span class="btn-icon">→</span> Login`;
-      hint.textContent = "Use your email & password to login.";
-      fullName.value = "";
-      confirmEl.value = "";
+      if (hint) hint.textContent = "Use your email & password to login.";
+      if (fullName) fullName.value = "";
+      if (confirmEl) confirmEl.value = "";
     } else {
-      modeSignupBtn.classList.add("active");
-      modeLoginBtn.classList.remove("active");
-      nameWrap.classList.remove("hidden");
-      confirmWrap.classList.remove("hidden");
+      modeSignupBtn?.classList.add("active");
+      modeLoginBtn?.classList.remove("active");
+      nameWrap?.classList.remove("hidden");
+      confirmWrap?.classList.remove("hidden");
       primaryBtn.innerHTML = `<span class="btn-icon">＋</span> Create Account`;
-      hint.textContent = "Create your account using email + password.";
+      if (hint) hint.textContent = "Create your account using email + password.";
     }
   }
 
@@ -112,11 +109,9 @@ onAuthStateChanged(auth, (user) => {
       if (cpw.length < 6) return { error: "Confirm password must be at least 6 characters." };
       if (pw !== cpw) return { error: "Password and confirm password do not match." };
     }
-
     return { name, email, pw };
   }
 
-  // ✅ Email/Password login/signup
   primaryBtn?.addEventListener("click", async () => {
     err.textContent = "";
     const v = readInputs();
@@ -142,16 +137,14 @@ onAuthStateChanged(auth, (user) => {
     }
   });
 
-  // ✅ Google sign-in (Popup first, Redirect fallback)
+  // ✅ Google sign-in: popup first, redirect fallback
   googleBtn?.addEventListener("click", async () => {
     err.textContent = "";
     try{
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
 
-      // 1) Try popup (best UX)
       const res = await signInWithPopup(auth, provider);
-
       if (res?.user){
         const name = res.user.displayName || "User";
         const email = res.user.email || "";
@@ -160,9 +153,9 @@ onAuthStateChanged(auth, (user) => {
       }
     }catch(e){
       console.error("Google popup error:", e);
-
-      // 2) Popup blocked -> fallback to redirect
       const code = e?.code || "";
+
+      // Popup blocked => redirect
       if (code === "auth/popup-blocked" || code === "auth/cancelled-popup-request"){
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: "select_account" });
@@ -175,7 +168,7 @@ onAuthStateChanged(auth, (user) => {
   });
 })();
 
-// ✅ 4) dashboard header welcome + logout
+// 4) Dashboard header + logout
 (function dashboardUI(){
   const logoutBtn = document.getElementById("logoutBtn");
   const welcomeLine = document.getElementById("welcomeLine");
