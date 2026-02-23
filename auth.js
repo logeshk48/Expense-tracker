@@ -1,11 +1,12 @@
-// auth.js
-import { auth } from "./firebase-config.js?v=200";
+// auth.js (STABLE: Popup + Redirect fallback + Strong routing)
+import { auth } from "./firebase-config.js?v=901";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
+  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   updateProfile
@@ -19,28 +20,36 @@ function clearProfile(){ localStorage.removeItem(PROFILE_KEY); }
 const isLoginPage = () => document.getElementById("loginForm") != null;
 const isDashboardPage = () => location.pathname.toLowerCase().includes("dashboard.html");
 
-// 1) handle redirect result from Google
-(async function handleRedirect(){
+// ✅ 1) Handle redirect result ALWAYS (when coming back from Google)
+(async function handleRedirectResult(){
   try{
     const res = await getRedirectResult(auth);
     if (res?.user){
       const name = res.user.displayName || "User";
       const email = res.user.email || "";
       setProfile({ name, email, ts: Date.now() });
-      location.href = "dashboard.html";
+
+      // ✅ Always go to dashboard after Google auth
+      if (!isDashboardPage()) location.href = "dashboard.html";
     }
   }catch(e){
-    // ignore if no redirect
+    // If no redirect happened, ignore
+    // But if there is a real issue, show it on login page
+    const errBox = document.getElementById("loginError");
+    if (errBox && e?.code) {
+      errBox.textContent = `Google sign-in error: ${e.code}`;
+    }
+    console.error("getRedirectResult error:", e);
   }
 })();
 
-// 2) route protection
+// ✅ 2) Route protection (prevents dashboard without login)
 onAuthStateChanged(auth, (user) => {
   if (isDashboardPage() && !user) location.href = "index.html";
   if (isLoginPage() && user) location.href = "dashboard.html";
 });
 
-// 3) login/signup page logic
+// ✅ 3) login/signup page logic
 (function loginUI(){
   const form = document.getElementById("loginForm");
   if (!form) return;
@@ -85,8 +94,8 @@ onAuthStateChanged(auth, (user) => {
     }
   }
 
-  modeLoginBtn.addEventListener("click", () => setMode("login"));
-  modeSignupBtn.addEventListener("click", () => setMode("signup"));
+  modeLoginBtn?.addEventListener("click", () => setMode("login"));
+  modeSignupBtn?.addEventListener("click", () => setMode("signup"));
   setMode("login");
 
   function readInputs(){
@@ -107,7 +116,8 @@ onAuthStateChanged(auth, (user) => {
     return { name, email, pw };
   }
 
-  primaryBtn.addEventListener("click", async () => {
+  // ✅ Email/Password login/signup
+  primaryBtn?.addEventListener("click", async () => {
     err.textContent = "";
     const v = readInputs();
     if (v.error) return (err.textContent = v.error);
@@ -126,27 +136,46 @@ onAuthStateChanged(auth, (user) => {
       }
     }catch(e){
       console.error(e);
-      if (mode === "login"){
-        err.textContent = "Login failed. Check email/password or create account first.";
-      } else {
-        err.textContent = "Signup failed. Email may already exist.";
-      }
+      err.textContent = (mode === "login")
+        ? "Login failed. Check email/password or create account first."
+        : "Signup failed. Email may already exist.";
     }
   });
 
-  googleBtn.addEventListener("click", async () => {
+  // ✅ Google sign-in (Popup first, Redirect fallback)
+  googleBtn?.addEventListener("click", async () => {
     err.textContent = "";
     try{
       const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
+      provider.setCustomParameters({ prompt: "select_account" });
+
+      // 1) Try popup (best UX)
+      const res = await signInWithPopup(auth, provider);
+
+      if (res?.user){
+        const name = res.user.displayName || "User";
+        const email = res.user.email || "";
+        setProfile({ name, email, ts: Date.now() });
+        location.href = "dashboard.html";
+      }
     }catch(e){
-      console.error(e);
-      err.textContent = "Google sign-in failed. Check Firebase Google setup + authorized domain.";
+      console.error("Google popup error:", e);
+
+      // 2) Popup blocked -> fallback to redirect
+      const code = e?.code || "";
+      if (code === "auth/popup-blocked" || code === "auth/cancelled-popup-request"){
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: "select_account" });
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+
+      err.textContent = `Google sign-in failed: ${code || "unknown error"}`;
     }
   });
 })();
 
-// 4) dashboard header welcome + logout
+// ✅ 4) dashboard header welcome + logout
 (function dashboardUI(){
   const logoutBtn = document.getElementById("logoutBtn");
   const welcomeLine = document.getElementById("welcomeLine");
