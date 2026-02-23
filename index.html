@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense Tracker • Login</title>
 
-  <link rel="stylesheet" href="style.css?v=501">
+  <link rel="stylesheet" href="style.css?v=200">
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -25,62 +26,52 @@
         <p class="login-subtitle">Cloud Powered Fintech Dashboard</p>
       </div>
 
-      <!-- Mode pill (Login/Signup indicator) -->
-      <div class="mode-pill" id="modePill">
-        <span class="mode-dot" id="modeDot"></span>
-        <span id="modeLabel">Login Mode</span>
+      <!-- Mode toggle -->
+      <div class="auth-toggle">
+        <button id="modeLogin" class="auth-pill active" type="button">Login</button>
+        <button id="modeSignup" class="auth-pill" type="button">Sign up</button>
       </div>
 
-      <form id="loginForm" class="login-form" autocomplete="on">
+      <form id="loginForm" class="login-form">
+        <!-- Signup only -->
+        <div class="field auth-only-signup hidden" id="nameWrap">
+          <label>Full Name</label>
+          <input id="fullName" type="text" placeholder="e.g., Kavinkumar" />
+        </div>
 
         <div class="field">
           <label>Email</label>
-          <input id="email" type="email" required placeholder="e.g., yourname@gmail.com" autocomplete="email" />
+          <input id="email" type="email" placeholder="e.g., name@gmail.com" required />
         </div>
 
         <div class="field">
           <label>Password</label>
-          <div class="pw-wrap">
-            <input id="password" type="password" required minlength="6" placeholder="Minimum 6 characters" autocomplete="current-password" />
-            <span id="togglePassword" class="eye-btn" title="Show/Hide">👁</span>
-          </div>
+          <input id="password" type="password" minlength="6" placeholder="Minimum 6 characters" required />
         </div>
 
-        <div class="field" id="confirmField" style="display:none;">
+        <!-- Signup only -->
+        <div class="field auth-only-signup hidden" id="confirmWrap">
           <label>Confirm Password</label>
-          <div class="pw-wrap">
-            <input id="confirmPassword" type="password" placeholder="Re-enter password" autocomplete="new-password" />
-            <span id="toggleConfirm" class="eye-btn" title="Show/Hide">👁</span>
-          </div>
+          <input id="confirmPassword" type="password" minlength="6" placeholder="Re-enter password" />
         </div>
 
-        <button id="mainBtn" type="button" class="btn btn-primary btn-large">
-          Login
-        </button>
+        <div class="login-actions">
+          <button id="primaryBtn" class="btn btn-primary btn-large" type="button">
+            <span class="btn-icon">→</span> Login
+          </button>
 
-        <!-- Small links row -->
-        <div class="mini-links">
-          <a href="#" id="forgotPassword" class="link-btn">Forgot password?</a>
-
-          <span>
-            <span id="switchText">New user?</span>
-            <a href="#" id="switchMode" class="link-btn">Create account</a>
-          </span>
+          <button id="googleBtn" class="btn btn-secondary btn-large" type="button">
+            <span class="btn-icon">G</span> Continue with Google
+          </button>
         </div>
 
-        <button id="googleBtn" type="button" class="btn btn-secondary btn-large" style="margin-top:12px;">
-          Continue with Google
-        </button>
-
-        <div class="notice">Tip: Use Google for fastest login ✨</div>
-
+        <p id="loginHint" class="login-hint">Use your email & password to login.</p>
         <p id="loginError" class="login-error"></p>
-
       </form>
+
     </section>
   </main>
 
-  <script type="module" src="auth.js?v=501"></script>
-
+  <script type="module" src="auth.js?v=200"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense Tracker • Dashboard</title>
-  <link rel="stylesheet" href="style.css?v=700" />
+  <link rel="stylesheet" href="style.css?v=200" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -136,7 +136,7 @@
 
             <div class="tip-box">
               <div class="tip-icon">💡</div>
-              <p>Check the <strong>Report</strong> tab for breakdown, trends, heatmap & comparisons</p>
+              <p>Check the <strong>Report</strong> tab for category breakdown and trends</p>
             </div>
           </div>
         </div>
@@ -167,9 +167,8 @@
         </div>
       </section>
 
-      <!-- REPORT TAB (UPGRADED) -->
+      <!-- REPORT TAB -->
       <section class="panel" id="report">
-
         <div class="grid">
           <div class="card">
             <div class="card-header">
@@ -178,11 +177,6 @@
             </div>
             <div class="chart-container">
               <canvas id="pieChart"></canvas>
-            </div>
-
-            <div class="mini-slab">
-              <div class="mini-slab-title">Top 3 Categories</div>
-              <div id="top3List" class="top3-list">—</div>
             </div>
           </div>
 
@@ -193,60 +187,6 @@
             </div>
             <div class="chart-container">
               <canvas id="barChart"></canvas>
-            </div>
-
-            <div class="mini-slab">
-              <div class="mini-slab-title">This Month vs Last Month</div>
-              <div id="momLine" class="mom-line">—</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid">
-          <div class="card">
-            <div class="card-header">
-              <h2>Monthly Trend</h2>
-              <p class="subtitle">Last 6 months spending</p>
-            </div>
-            <div class="chart-container">
-              <canvas id="monthlyLineChart"></canvas>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <h2>Budget vs Actual</h2>
-              <p class="subtitle">Set a monthly budget & compare</p>
-            </div>
-
-            <div class="budget-row">
-              <div class="field">
-                <label>Monthly Budget (₹)</label>
-                <input id="budgetInput" type="number" placeholder="e.g., 15000" />
-              </div>
-              <button id="saveBudgetBtn" class="btn btn-secondary">Save Budget</button>
-            </div>
-
-            <div class="chart-container">
-              <canvas id="budgetChart"></canvas>
-            </div>
-            <div class="notice" id="budgetNote">Tip: Save budget once. It stays in your browser.</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <h2>Spending Heatmap</h2>
-            <p class="subtitle">GitHub-style intensity (last 16 weeks)</p>
-          </div>
-
-          <div class="heatmap-wrap">
-            <div class="heatmap-months" id="heatmapMonths"></div>
-            <div class="heatmap-body">
-              <div class="heatmap-days">
-                <div>Mon</div><div>Wed</div><div>Fri</div>
-              </div>
-              <div class="heatmap-grid" id="heatmapGrid"></div>
             </div>
           </div>
         </div>
@@ -296,7 +236,6 @@
             </div>
           </div>
         </div>
-
       </section>
 
       <!-- TIPS TAB -->
@@ -304,7 +243,7 @@
         <div class="card">
           <div class="card-header">
             <h2>Smart Financial Tips</h2>
-            <p class="subtitle">Rule-based tips from your actual spending</p>
+            <p class="subtitle">Insights based on your patterns</p>
           </div>
 
           <div class="action-row">
@@ -326,7 +265,7 @@
           <div class="card">
             <div class="card-header">
               <h2>Key Insights</h2>
-              <p class="subtitle">Comprehensive spending overview</p>
+              <p class="subtitle">Spending overview</p>
             </div>
             <div class="insights-grid" id="insightsBox"></div>
           </div>
@@ -334,7 +273,7 @@
           <div class="card">
             <div class="card-header">
               <h2>Top Category</h2>
-              <p class="subtitle">Your highest spending area</p>
+              <p class="subtitle">Highest spending area</p>
             </div>
             <div class="highlight-box" id="topCategoryBox">
               <div class="highlight-content">—</div>
@@ -348,7 +287,7 @@
         <div class="card">
           <div class="card-header">
             <h2>AI Assistant</h2>
-            <p class="subtitle">Ask: “this month total?”, “top category?”, “last 7 days?”</p>
+            <p class="subtitle">Chat about your expenses</p>
           </div>
 
           <div class="chat-container" id="chatBox"></div>
@@ -364,11 +303,11 @@
     </main>
 
     <footer class="footer">
-      <p>Built with ❤️ • Firebase • Charts • Heatmap</p>
+      <p>Built with ❤️ • Firebase • Ready for AI Integration</p>
     </footer>
   </div>
 
-  <script type="module" src="auth.js?v=700"></script>
-  <script type="module" src="app.js?v=700"></script>
+  <script type="module" src="auth.js?v=200"></script>
+  <script type="module" src="app.js?v=200"></script>
 </body>
 </html>

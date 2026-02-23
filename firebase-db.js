@@ -1,6 +1,5 @@
 // firebase-db.js
-import { db } from "./firebase-config.js?v=99";
-
+import { db } from "./firebase-config.js?v=200";
 import {
   collection,
   doc,
@@ -20,13 +19,11 @@ export async function loadExpensesFromCloud(uid){
   const items = [];
   snap.forEach(d => items.push(d.data()));
 
-  // latest first
   items.sort((a,b)=> (b.date || "").localeCompare(a.date || ""));
   return items;
 }
 
 export async function saveExpenseToCloud(item){
-  // item must contain id
   await setDoc(doc(db, EXP_COLLECTION, item.id), item);
 }
 
