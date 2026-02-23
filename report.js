@@ -1,74 +1,79 @@
-// report.js (Chart.js Premium Donut + Bar + Filters)
+// report.js (MODULAR + SAFE)
+// Uses global Chart.js loaded from CDN in dashboard.html
 
 let pieChart = null;
 let barChart = null;
 
-function parseDateSafe(s) {
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+function parseDateSafe(s){
   if (!s) return new Date(0);
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, (m || 1) - 1, d || 1);
+  const [y,m,d] = s.split("-").map(Number);
+  return new Date(y, (m||1)-1, d||1);
 }
 
-function hexToRgb(hex) {
-  const h = (hex || "").replace("#", "");
-  if (h.length !== 6) return { r: 255, g: 255, b: 255 };
-  return {
-    r: parseInt(h.slice(0, 2), 16),
-    g: parseInt(h.slice(2, 4), 16),
-    b: parseInt(h.slice(4, 6), 16)
-  };
-}
-function rgba(hex, a) {
-  const { r, g, b } = hexToRgb(hex);
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-function buildCategoryTotals(list) {
+function buildCategoryTotals(list){
   const m = new Map();
-  for (const e of list) {
+  for (const e of list){
     const c = e.category || "Other";
     m.set(c, (m.get(c) || 0) + Number(e.amount || 0));
   }
-  const arr = Array.from(m.entries()).map(([k, v]) => ({ category: k, total: v }));
-  arr.sort((a, b) => b.total - a.total);
+  const arr = Array.from(m.entries()).map(([k,v]) => ({ category: k, total: v }));
+  arr.sort((a,b)=> b.total - a.total);
   return arr;
 }
 
-function lastNDaysTotals(list, ymd, n = 7) {
+function lastNDaysTotals(list, ymd, n=7){
   const now = new Date();
   const days = [];
-  for (let i = n - 1; i >= 0; i--) {
+  for (let i=n-1; i>=0; i--){
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    days.push({ date: ymd(d), total: 0 });
+    const key = ymd(d);
+    days.push({ date: key, total: 0 });
   }
-  const idx = new Map(days.map((x, i) => [x.date, i]));
-  for (const e of list) {
+  const idx = new Map(days.map((x,i)=> [x.date, i]));
+  for (const e of list){
     const i = idx.get(e.date);
     if (i != null) days[i].total += Number(e.amount || 0);
   }
   return days;
 }
 
-function ensureChart(ctx, existing, config) {
+function ensureChart(ctx, existing, config){
   if (!ctx) return null;
   if (existing) existing.destroy();
   return new Chart(ctx, config);
 }
 
-/** Call once from app.js after page load */
-export function initReportUI({ getExpenses, money, ymd }) {
+function hexToRgb(hex){
+  const h = (hex || "").replace("#","");
+  if (h.length !== 6) return {r:255,g:255,b:255};
+  return {
+    r: parseInt(h.slice(0,2), 16),
+    g: parseInt(h.slice(2,4), 16),
+    b: parseInt(h.slice(4,6), 16)
+  };
+}
+function rgba(hex, a){
+  const {r,g,b} = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ✅ Public: wire up report UI buttons once
+export function initReportUI({ getExpenses, money, ymd }){
   const applyBtn = document.getElementById("applyFilterBtn");
   const clearBtn = document.getElementById("clearFilterBtn");
 
-  if (applyBtn) {
+  if (applyBtn){
     applyBtn.addEventListener("click", () => {
-      const filtered = filterExpenses(getExpenses());
+      const expenses = getExpenses();
+      const filtered = filterExpenses(expenses);
       updateFilterCards(filtered, money);
     });
   }
 
-  if (clearBtn) {
+  if (clearBtn){
     clearBtn.addEventListener("click", () => {
       const fromDateEl = document.getElementById("fromDate");
       const toDateEl = document.getElementById("toDate");
@@ -80,11 +85,11 @@ export function initReportUI({ getExpenses, money, ymd }) {
     });
   }
 
-  // First render
+  // First paint (safe)
   renderReport(getExpenses(), money, ymd);
 }
 
-function filterExpenses(expenses) {
+function filterExpenses(expenses){
   const fromDateEl = document.getElementById("fromDate");
   const toDateEl = document.getElementById("toDate");
   const filterCategoryEl = document.getElementById("filterCategory");
@@ -93,12 +98,12 @@ function filterExpenses(expenses) {
   const to = toDateEl?.value ? parseDateSafe(toDateEl.value) : null;
   const cat = (filterCategoryEl?.value || "").trim();
 
-  return expenses.filter((e) => {
+  return expenses.filter(e => {
     const d = parseDateSafe(e.date);
     if (from && d < from) return false;
-    if (to) {
+    if (to){
       const to2 = new Date(to);
-      to2.setHours(23, 59, 59, 999);
+      to2.setHours(23,59,59,999);
       if (d > to2) return false;
     }
     if (cat && e.category !== cat) return false;
@@ -106,28 +111,28 @@ function filterExpenses(expenses) {
   });
 }
 
-function updateFilterCards(filtered, money, cleared = false) {
+function updateFilterCards(filtered, money, cleared=false){
   const filteredTotalEl = document.getElementById("filteredTotal");
   const filteredCountEl = document.getElementById("filteredCount");
 
-  if (cleared) {
+  if (cleared){
     if (filteredTotalEl) filteredTotalEl.textContent = money(0);
     if (filteredCountEl) filteredCountEl.textContent = "0";
     return;
   }
 
-  const total = filtered.reduce((s, x) => s + Number(x.amount || 0), 0);
+  const total = filtered.reduce((s,x)=> s + Number(x.amount || 0), 0);
   if (filteredTotalEl) filteredTotalEl.textContent = money(total);
   if (filteredCountEl) filteredCountEl.textContent = String(filtered.length);
 }
 
-/** Call whenever report tab opens OR after add/delete expense */
-export function renderReport(expenses, money, ymd) {
-  // -------- Premium Donut (Pie) ----------
+// ✅ Public: call this whenever expenses change OR tab opens
+export function renderReport(expenses, money, ymd){
+  // PIE (Premium donut)
   const catTotals = buildCategoryTotals(expenses);
-  const labels = catTotals.map((x) => x.category);
-  const values = catTotals.map((x) => x.total);
-  const total = values.reduce((a, b) => a + (Number(b) || 0), 0) || 1;
+  const labels = catTotals.map(x => x.category);
+  const values = catTotals.map(x => x.total);
+  const total = values.reduce((a,b)=> a + (Number(b)||0), 0) || 1;
 
   const colorMap = {
     Food: "#00FFC8",
@@ -137,29 +142,29 @@ export function renderReport(expenses, money, ymd) {
     Entertainment: "#00B7FF",
     Other: "#A0A7B4"
   };
-  const baseColors = labels.map((l) => colorMap[l] || "#A0A7B4");
+  const baseColors = labels.map(l => colorMap[l] || "#A0A7B4");
 
   const donutShadow = {
     id: "donutShadow",
-    beforeDatasetsDraw(chart) {
+    beforeDatasetsDraw(chart){
       const ctx = chart.ctx;
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,0.45)";
       ctx.shadowBlur = 18;
       ctx.shadowOffsetY = 10;
     },
-    afterDatasetsDraw(chart) {
+    afterDatasetsDraw(chart){
       chart.ctx.restore();
     }
   };
 
   const centerTotalPlugin = {
     id: "centerTotalPlugin",
-    afterDraw(chart) {
+    afterDraw(chart){
       const { ctx, chartArea } = chart;
       if (!chartArea) return;
 
-      const sum = values.reduce((a, b) => a + (Number(b) || 0), 0);
+      const sum = values.reduce((a,b)=>a+(Number(b)||0),0);
 
       const x = (chartArea.left + chartArea.right) / 2;
       const y = (chartArea.top + chartArea.bottom) / 2;
@@ -167,7 +172,6 @@ export function renderReport(expenses, money, ymd) {
       ctx.save();
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-
       ctx.fillStyle = "rgba(255,255,255,0.88)";
       ctx.font = "700 14px DM Sans, sans-serif";
       ctx.fillText("Total", x, y - 12);
@@ -175,14 +179,13 @@ export function renderReport(expenses, money, ymd) {
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.font = "800 20px Syne, sans-serif";
       ctx.fillText(money(sum), x, y + 12);
-
       ctx.restore();
     }
   };
 
   const percentLabels = {
     id: "percentLabels",
-    afterDatasetsDraw(chart) {
+    afterDatasetsDraw(chart){
       const meta = chart.getDatasetMeta(0);
       if (!meta?.data?.length) return;
 
@@ -198,12 +201,9 @@ export function renderReport(expenses, money, ymd) {
         if (!v) return;
 
         const pct = (v / total) * 100;
-        if (pct < 4) return; // hide tiny labels
+        if (pct < 4) return;
 
-        const p = arc.getProps(
-          ["x", "y", "startAngle", "endAngle", "innerRadius", "outerRadius"],
-          true
-        );
+        const p = arc.getProps(["x","y","startAngle","endAngle","innerRadius","outerRadius"], true);
         const angle = (p.startAngle + p.endAngle) / 2;
         const r = (p.innerRadius + p.outerRadius) / 2;
 
@@ -223,20 +223,18 @@ export function renderReport(expenses, money, ymd) {
     plugins: [donutShadow, centerTotalPlugin, percentLabels],
     data: {
       labels,
-      datasets: [
-        {
-          data: values,
-          backgroundColor: baseColors.map((c) => rgba(c, 0.55)), // replaced with gradients
-          borderWidth: 2,
-          borderColor: "rgba(255,255,255,0.85)",
-          spacing: 7,
-          borderRadius: 14,
-          cutout: "70%",
-          hoverBorderWidth: 3,
-          hoverBorderColor: "rgba(255,255,255,0.98)",
-          hoverOffset: 14
-        }
-      ]
+      datasets: [{
+        data: values,
+        backgroundColor: baseColors.map(c => rgba(c, 0.55)),
+        borderWidth: 2,
+        borderColor: "rgba(255,255,255,0.85)",
+        spacing: 7,
+        borderRadius: 14,
+        cutout: "70%",
+        hoverBorderWidth: 3,
+        hoverBorderColor: "rgba(255,255,255,0.98)",
+        hoverOffset: 14
+      }]
     },
     options: {
       responsive: true,
@@ -257,11 +255,11 @@ export function renderReport(expenses, money, ymd) {
             boxHeight: 12,
             padding: 14,
             font: { size: 12, weight: "600" },
-            generateLabels(chart) {
+            generateLabels(chart){
               const ds = chart.data.datasets[0];
               return chart.data.labels.map((l, i) => {
                 const v = Number(ds.data[i] || 0);
-                const pct = (v / total) * 100;
+                const pct = ((v / total) * 100);
                 return {
                   text: `${l} • ${pct.toFixed(0)}%`,
                   fillStyle: baseColors[i],
@@ -273,8 +271,9 @@ export function renderReport(expenses, money, ymd) {
               });
             }
           },
-          onClick(e, item, legend) {
-            legend.chart.toggleDataVisibility(item.index);
+          onClick(e, legendItem, legend){
+            const i = legendItem.index;
+            legend.chart.toggleDataVisibility(i);
             legend.chart.update();
           }
         },
@@ -291,21 +290,14 @@ export function renderReport(expenses, money, ymd) {
     }
   });
 
-  // Apply gradients after chart area exists
-  if (pieChart?.chartArea) {
+  // Apply gradients after area exists
+  if (pieChart?.chartArea){
     const { ctx, chartArea } = pieChart;
     const cx = (chartArea.left + chartArea.right) / 2;
     const cy = (chartArea.top + chartArea.bottom) / 2;
 
     const grads = baseColors.map((hex) => {
-      const g = ctx.createRadialGradient(
-        cx,
-        cy,
-        20,
-        cx,
-        cy,
-        Math.max(chartArea.width, chartArea.height) / 2
-      );
+      const g = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(chartArea.width, chartArea.height) / 2);
       g.addColorStop(0, rgba(hex, 0.95));
       g.addColorStop(0.55, rgba(hex, 0.55));
       g.addColorStop(1, rgba(hex, 0.18));
@@ -316,37 +308,28 @@ export function renderReport(expenses, money, ymd) {
     pieChart.update();
   }
 
-  // -------- Premium Bar (Last 7 Days) ----------
+  // BAR (Last 7 days)
   const last7 = lastNDaysTotals(expenses, ymd, 7);
   const barCtx = document.getElementById("barChart")?.getContext("2d");
 
   barChart = ensureChart(barCtx, barChart, {
     type: "bar",
     data: {
-      labels: last7.map((x) => x.date.slice(5)),
-      datasets: [
-        {
-          label: "Spend",
-          data: last7.map((x) => x.total),
-          borderRadius: 10,
-          borderSkipped: false
-        }
-      ]
+      labels: last7.map(x => x.date.slice(5)),
+      datasets: [{
+        label: "Spend",
+        data: last7.map(x => x.total),
+        borderRadius: 10,
+        borderSkipped: false
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { color: "rgba(255,255,255,0.75)" },
-          grid: { color: "rgba(255,255,255,0.08)" }
-        },
-        x: {
-          ticks: { color: "rgba(255,255,255,0.75)" },
-          grid: { display: false }
-        }
+        y: { beginAtZero: true, ticks: { color: "rgba(255,255,255,0.75)" }, grid: { color: "rgba(255,255,255,0.08)" } },
+        x: { ticks: { color: "rgba(255,255,255,0.75)" }, grid: { display: false } }
       }
     }
   });

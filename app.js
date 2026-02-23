@@ -1,11 +1,14 @@
-import { initReportUI, renderReport as renderReportModule } from "./report.js";
-import { auth } from "./firebase-config.js?v=900";
+// app.js (STABLE + MODULAR REPORT)
+// IMPORTANT: report.js handles charts + filter UI
+import { auth } from "./firebase-config.js?v=901";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import {
   loadExpensesFromCloud,
   saveExpenseToCloud,
   deleteExpenseFromCloud
-} from "./firebase-db.js?v=900";
+} from "./firebase-db.js?v=901";
+
+import { initReportUI, renderReport } from "./report.js?v=901";
 
 /* ---------------------------
    Helpers
@@ -27,12 +30,6 @@ function startOfWeek(date){
   d.setHours(0,0,0,0);
   return d;
 }
-function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
-
-/* ---------------------------
-   Charts (kept global)
---------------------------- */
-let pieChart, barChart, monthlyLineChart, budgetChart;
 
 /* ---------------------------
    Main
@@ -40,6 +37,7 @@ let pieChart, barChart, monthlyLineChart, budgetChart;
 document.addEventListener("DOMContentLoaded", async () => {
   if (!location.pathname.toLowerCase().includes("dashboard.html")) return;
 
+  // ✅ auth guard
   const uid = await new Promise((resolve) => {
     onAuthStateChanged(auth, (user) => resolve(user ? user.uid : null));
   });
@@ -70,25 +68,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const tabBtns = Array.from(document.querySelectorAll(".tab"));
   const panels = Array.from(document.querySelectorAll(".panel"));
 
-  // Report elements
-  const fromDateEl = document.getElementById("fromDate");
-  const toDateEl = document.getElementById("toDate");
-  const filterCategoryEl = document.getElementById("filterCategory");
-  const applyFilterBtn = document.getElementById("applyFilterBtn");
-  const clearFilterBtn = document.getElementById("clearFilterBtn");
-  const filteredTotalEl = document.getElementById("filteredTotal");
-  const filteredCountEl = document.getElementById("filteredCount");
-
-  const top3ListEl = document.getElementById("top3List");
-  const momLineEl = document.getElementById("momLine");
-
-  const budgetInput = document.getElementById("budgetInput");
-  const saveBudgetBtn = document.getElementById("saveBudgetBtn");
-  const budgetNote = document.getElementById("budgetNote");
-
-  const heatmapGrid = document.getElementById("heatmapGrid");
-  const heatmapMonths = document.getElementById("heatmapMonths");
-
   // Tips
   const generateTipsBtn = document.getElementById("generateTipsBtn");
   const tipsList = document.getElementById("tipsList");
@@ -107,11 +86,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load expenses
   let expenses = await loadExpensesFromCloud(uid);
+
+  // ✅ Init report module ONCE
   initReportUI({
-  getExpenses: () => expenses,
-  money,
-  ymd
-});
+    getExpenses: () => expenses,
+    money,
+    ymd
+  });
 
   /* ---------------------------
      Tabs logic
@@ -119,7 +100,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   function setActiveTab(tabId){
     tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
     panels.forEach(p => p.classList.toggle("active", p.id === tabId));
-    if (tabId === "report") renderReportModule(expenses, money, ymd);
+
+    if (tabId === "report") renderReport(expenses, money, ymd);
     if (tabId === "tips") renderTipsPreview();
     if (tabId === "analyze") renderAnalyze();
     if (tabId === "chat") renderChatWelcome();
@@ -184,12 +166,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   function renderAll(){
     computeTotals();
     renderList();
+
     const activePanel = document.querySelector(".panel.active")?.id;
-    if (activePanel === "report") renderReport();
+    if (activePanel === "report") renderReport(expenses, money, ymd);
     if (activePanel === "analyze") renderAnalyze();
-    const active = document.querySelector(".panel.active")?.id;
-    if (active === "report") renderReportModule(expenses, money, ymd);
-    
   }
 
   /* ---------------------------
@@ -282,7 +262,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   /* ---------------------------
-     REPORT ENGINE
+     Shared for Tips + Analyze + Chat
   --------------------------- */
   function buildCategoryTotals(list){
     const m = new Map();
@@ -310,451 +290,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (i != null) days[i].total += Number(e.amount || 0);
     }
     return days;
-  }
-
-  function lastNMonthsTotals(list, n=6){
-    const now = new Date();
-    const months = [];
-    for (let i=n-1; i>=0; i--){
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      months.push({ key, label: d.toLocaleString("en-US", { month:"short" }), total: 0 });
-    }
-    const idx = new Map(months.map((x,i)=> [x.key, i]));
-    for (const e of list){
-      const d = parseDateSafe(e.date);
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      const i = idx.get(key);
-      if (i != null) months[i].total += Number(e.amount || 0);
-    }
-    return months;
-  }
-
-  function thisMonthVsLastMonth(list){
-    const now = new Date();
-    const thisKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
-    const last = new Date(now.getFullYear(), now.getMonth()-1, 1);
-    const lastKey = `${last.getFullYear()}-${String(last.getMonth()+1).padStart(2,"0")}`;
-
-    let thisTotal = 0, lastTotal = 0;
-    for (const e of list){
-      const d = parseDateSafe(e.date);
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      const amt = Number(e.amount || 0);
-      if (key === thisKey) thisTotal += amt;
-      if (key === lastKey) lastTotal += amt;
-    }
-
-    const diff = thisTotal - lastTotal;
-    const pct = lastTotal === 0 ? (thisTotal > 0 ? 100 : 0) : (diff / lastTotal) * 100;
-    return { thisTotal, lastTotal, diff, pct };
-  }
-
-  function renderTop3(categoryTotals){
-    if (!top3ListEl) return;
-    if (!categoryTotals.length) { top3ListEl.textContent = "—"; return; }
-    const top3 = categoryTotals.slice(0,3);
-    top3ListEl.innerHTML = top3.map((x,i)=> `
-      <div class="top3-item">
-        <div class="top3-rank">#${i+1}</div>
-        <div class="top3-name">${x.category}</div>
-        <div class="top3-val">${money(x.total)}</div>
-      </div>
-    `).join("");
-  }
-
-  function renderMoM(mom){
-    if (!momLineEl) return;
-    const arrow = mom.diff >= 0 ? "▲" : "▼";
-    const cls = mom.diff >= 0 ? "mom-up" : "mom-down";
-    momLineEl.innerHTML = `
-      <span class="mom-a">${money(mom.thisTotal)}</span>
-      <span class="mom-b">vs</span>
-      <span class="mom-a">${money(mom.lastTotal)}</span>
-      <span class="mom-b">•</span>
-      <span class="${cls}">${arrow} ${money(Math.abs(mom.diff))} (${Math.abs(mom.pct).toFixed(0)}%)</span>
-    `;
-  }
-
-  function ensureChart(ctx, existing, config){
-    if (!ctx) return null;
-    if (existing) existing.destroy();
-    return new Chart(ctx, config);
-  }
-
-  function renderHeatmap(list){
-    if (!heatmapGrid || !heatmapMonths) return;
-
-    const totalDays = 16 * 7;
-    const today = new Date();
-    today.setHours(0,0,0,0);
-
-    const days = [];
-    for (let i=totalDays-1; i>=0; i--){
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      days.push(d);
-    }
-
-    const byDate = new Map();
-    for (const e of list){
-      const key = e.date;
-      byDate.set(key, (byDate.get(key) || 0) + Number(e.amount || 0));
-    }
-
-    const values = days.map(d => byDate.get(ymd(d)) || 0);
-    const max = Math.max(1, ...values);
-
-    heatmapMonths.innerHTML = "";
-    let lastMonth = -1;
-    days.forEach((d, idx) => {
-      if (idx % 7 !== 0) return;
-      const m = d.getMonth();
-      const div = document.createElement("div");
-      if (m !== lastMonth){
-        lastMonth = m;
-        div.textContent = d.toLocaleString("en-US", { month:"short" });
-      } else {
-        div.textContent = "";
-      }
-      heatmapMonths.appendChild(div);
-    });
-
-    heatmapGrid.innerHTML = "";
-    for (let col=0; col<16; col++){
-      for (let row=0; row<7; row++){
-        const i = col*7 + row;
-        const v = values[i] || 0;
-        const intensity = clamp(v / max, 0, 1);
-        const level = v === 0 ? 0 : intensity < 0.25 ? 1 : intensity < 0.5 ? 2 : intensity < 0.75 ? 3 : 4;
-
-        const cell = document.createElement("div");
-        cell.className = `hm-cell hm-${level}`;
-        cell.title = `${ymd(days[i])} • ${money(v)}`;
-        heatmapGrid.appendChild(cell);
-      }
-    }
-  }
-
-  /* ---------------------------
-     ✅ PREMIUM PIE: gradients + % labels + shadow + glow + animation
-  --------------------------- */
-  function hexToRgb(hex){
-    const h = (hex || "").replace("#","");
-    if (h.length !== 6) return {r:255,g:255,b:255};
-    return {
-      r: parseInt(h.slice(0,2), 16),
-      g: parseInt(h.slice(2,4), 16),
-      b: parseInt(h.slice(4,6), 16)
-    };
-  }
-  function rgba(hex, a){
-    const {r,g,b} = hexToRgb(hex);
-    return `rgba(${r},${g},${b},${a})`;
-  }
-
-  function renderReport_old(){
-    const catTotals = buildCategoryTotals(expenses);
-    const last7 = lastNDaysTotals(expenses, 7);
-    const months6 = lastNMonthsTotals(expenses, 6);
-    const mom = thisMonthVsLastMonth(expenses);
-
-    renderTop3(catTotals);
-    renderMoM(mom);
-    renderHeatmap(expenses);
-
-    // ---------- PREMIUM DONUT ----------
-    const pieCanvas = document.getElementById("pieChart");
-    const pieCtx = pieCanvas?.getContext("2d");
-
-    const labels = catTotals.map(x => x.category);
-    const values = catTotals.map(x => x.total);
-    const total = values.reduce((a,b)=> a + (Number(b)||0), 0) || 1;
-
-    // Base color per category (you can tweak)
-    const colorMap = {
-      Food: "#00FFC8",
-      Travel: "#7C4DFF",
-      Shopping: "#FF4DA6",
-      Bills: "#FFB020",
-      Entertainment: "#00B7FF",
-      Other: "#A0A7B4"
-    };
-
-    const baseColors = labels.map(l => colorMap[l] || "#A0A7B4");
-
-    // Build gradients per slice (radial)
-    function buildGradients(chart){
-      const { ctx, chartArea } = chart;
-      const cx = (chartArea.left + chartArea.right) / 2;
-      const cy = (chartArea.top + chartArea.bottom) / 2;
-
-      return baseColors.map((hex) => {
-        const g = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(chartArea.width, chartArea.height) / 2);
-        g.addColorStop(0, rgba(hex, 0.95));
-        g.addColorStop(0.55, rgba(hex, 0.55));
-        g.addColorStop(1, rgba(hex, 0.18));
-        return g;
-      });
-    }
-
-    // Shadow behind donut (subtle depth)
-    const donutShadow = {
-      id: "donutShadow",
-      beforeDatasetsDraw(chart){
-        const ctx = chart.ctx;
-        ctx.save();
-        ctx.shadowColor = "rgba(0,0,0,0.45)";
-        ctx.shadowBlur = 18;
-        ctx.shadowOffsetY = 10;
-      },
-      afterDatasetsDraw(chart){
-        chart.ctx.restore();
-      }
-    };
-
-    // Center Total text
-    const centerTotalPlugin = {
-      id: "centerTotalPlugin",
-      afterDraw(chart){
-        const { ctx, chartArea } = chart;
-        if (!chartArea) return;
-
-        const x = (chartArea.left + chartArea.right) / 2;
-        const y = (chartArea.top + chartArea.bottom) / 2;
-
-        ctx.save();
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = "rgba(255,255,255,0.88)";
-        ctx.font = "700 14px DM Sans, sans-serif";
-        ctx.fillText("Total", x, y - 12);
-
-        ctx.fillStyle = "rgba(255,255,255,0.95)";
-        ctx.font = "800 20px Syne, sans-serif";
-        ctx.fillText(money(values.reduce((a,b)=>a+(Number(b)||0),0)), x, y + 12);
-        ctx.restore();
-      }
-    };
-
-    // Percentage labels inside slices
-    const percentLabels = {
-      id: "percentLabels",
-      afterDatasetsDraw(chart){
-        const meta = chart.getDatasetMeta(0);
-        if (!meta?.data?.length) return;
-
-        const ctx = chart.ctx;
-        ctx.save();
-        ctx.fillStyle = "rgba(255,255,255,0.92)";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.font = "700 12px DM Sans, sans-serif";
-
-        meta.data.forEach((arc, i) => {
-          const v = Number(values[i] || 0);
-          if (!v) return;
-
-          const pct = (v / total) * 100;
-          if (pct < 4) return; // hide tiny labels
-
-          const p = arc.getProps(["x","y","startAngle","endAngle","innerRadius","outerRadius"], true);
-          const angle = (p.startAngle + p.endAngle) / 2;
-          const r = (p.innerRadius + p.outerRadius) / 2;
-
-          const x = p.x + Math.cos(angle) * r;
-          const y = p.y + Math.sin(angle) * r;
-
-          ctx.fillText(`${pct.toFixed(0)}%`, x, y);
-        });
-
-        ctx.restore();
-      }
-    };
-
-    pieChart = ensureChart(pieCtx, pieChart, {
-      type: "doughnut",
-      plugins: [donutShadow, centerTotalPlugin, percentLabels],
-      data: {
-        labels,
-        datasets: [{
-          data: values,
-          backgroundColor: baseColors.map(c => rgba(c, 0.55)), // replaced by gradients after create
-          borderWidth: 2,
-          borderColor: "rgba(255,255,255,0.85)",
-          spacing: 7,
-          borderRadius: 14,
-          cutout: "70%",
-
-          // Hover glow effect
-          hoverBorderWidth: 3,
-          hoverBorderColor: "rgba(255,255,255,0.98)",
-          hoverOffset: 14
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: { padding: 12 },
-        animation: {
-          duration: 1200,
-          easing: "easeOutQuart",
-          animateRotate: true,
-          animateScale: true
-        },
-        plugins: {
-          legend: {
-            position: "bottom",
-            labels: {
-              color: "rgba(255,255,255,0.88)",
-              boxWidth: 12,
-              boxHeight: 12,
-              padding: 14,
-              font: { size: 12, weight: "600" },
-              generateLabels(chart){
-                const ds = chart.data.datasets[0];
-                return chart.data.labels.map((l, i) => {
-                  const v = Number(ds.data[i] || 0);
-                  const pct = ((v / total) * 100);
-                  return {
-                    text: `${l} • ${pct.toFixed(0)}%`,
-                    fillStyle: baseColors[i],
-                    strokeStyle: "rgba(255,255,255,0.25)",
-                    lineWidth: 1,
-                    hidden: !chart.getDataVisibility(i),
-                    index: i
-                  };
-                });
-              }
-            },
-            onClick(e, legendItem, legend){
-              const i = legendItem.index;
-              legend.chart.toggleDataVisibility(i);
-              legend.chart.update();
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const v = Number(ctx.parsed || 0);
-                const pct = (v / total) * 100;
-                return `${ctx.label}: ${money(v)} (${pct.toFixed(1)}%)`;
-              }
-            }
-          }
-        }
-      }
-    });
-
-    // Apply gradients once chart area exists
-    if (pieChart?.chartArea) {
-      pieChart.data.datasets[0].backgroundColor = buildGradients(pieChart);
-      pieChart.update();
-    }
-    // ---------- END PREMIUM DONUT ----------
-
-    // Last 7 days bar
-    const barCtx = document.getElementById("barChart")?.getContext("2d");
-    barChart = ensureChart(barCtx, barChart, {
-      type: "bar",
-      data: {
-        labels: last7.map(x => x.date.slice(5)),
-        datasets: [{ label: "Spend", data: last7.map(x => x.total) }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-
-    // Monthly trend line
-    const lineCtx = document.getElementById("monthlyLineChart")?.getContext("2d");
-    monthlyLineChart = ensureChart(lineCtx, monthlyLineChart, {
-      type: "line",
-      data: {
-        labels: months6.map(x => x.label),
-        datasets: [{ label: "Monthly Spend", data: months6.map(x => x.total), tension: 0.35 }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-
-    // Budget vs Actual
-    const now = new Date();
-    const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
-    const thisMonthTotal = months6.find(m => m.key === thisMonthKey)?.total || 0;
-
-    const savedBudget = Number(localStorage.getItem("et_monthly_budget") || 0);
-    if (budgetInput && !budgetInput.value) budgetInput.value = savedBudget ? String(savedBudget) : "";
-
-    const budCtx = document.getElementById("budgetChart")?.getContext("2d");
-    budgetChart = ensureChart(budCtx, budgetChart, {
-      type: "bar",
-      data: {
-        labels: ["Budget", "Actual"],
-        datasets: [{
-          label: "₹",
-          data: [savedBudget || 0, thisMonthTotal]
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-
-    if (budgetNote){
-      if (!savedBudget) budgetNote.textContent = "Tip: Enter a budget and click Save.";
-      else budgetNote.textContent = `Budget saved: ${money(savedBudget)} • This month: ${money(thisMonthTotal)}`;
-    }
-  }
-
-  // Filter actions
-  function applyFilters(){
-    const from = fromDateEl?.value ? parseDateSafe(fromDateEl.value) : null;
-    const to = toDateEl?.value ? parseDateSafe(toDateEl.value) : null;
-    const cat = filterCategoryEl?.value || "";
-
-    const filtered = expenses.filter(e => {
-      const d = parseDateSafe(e.date);
-      if (from && d < from) return false;
-      if (to){
-        const to2 = new Date(to);
-        to2.setHours(23,59,59,999);
-        if (d > to2) return false;
-      }
-      if (cat && e.category !== cat) return false;
-      return true;
-    });
-
-    const total = filtered.reduce((s,x)=> s + Number(x.amount || 0), 0);
-    if (filteredTotalEl) filteredTotalEl.textContent = money(total);
-    if (filteredCountEl) filteredCountEl.textContent = String(filtered.length);
-  }
-
-  if (applyFilterBtn) applyFilterBtn.addEventListener("click", applyFilters);
-  if (clearFilterBtn) clearFilterBtn.addEventListener("click", () => {
-    if (fromDateEl) fromDateEl.value = "";
-    if (toDateEl) toDateEl.value = "";
-    if (filterCategoryEl) filterCategoryEl.value = "";
-    if (filteredTotalEl) filteredTotalEl.textContent = money(0);
-    if (filteredCountEl) filteredCountEl.textContent = "0";
-  });
-
-  // Budget save
-  if (saveBudgetBtn){
-    saveBudgetBtn.addEventListener("click", () => {
-      const v = Number(budgetInput?.value || 0);
-      if (!v || v <= 0) return alert("Enter a valid budget.");
-      localStorage.setItem("et_monthly_budget", String(v));
-      renderReport();
-      alert("Budget saved!");
-    });
   }
 
   /* ---------------------------
@@ -855,7 +390,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   /* ---------------------------
-     CHAT (simple local “AI”)
+     CHAT (simple local)
   --------------------------- */
   function renderChatWelcome(){
     if (!chatBox) return;
@@ -888,7 +423,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function answerChat(q){
     const s = q.toLowerCase();
-
     const now = new Date();
     const todayKey = ymd(now);
 
@@ -911,7 +445,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       const top = buildCategoryTotals(expenses)[0];
       return top ? `Your top category is ${top.category} with ${money(top.total)}.` : "No data yet.";
     }
-
     return `Try: "this month total", "top category", "last 7 days", "today spend".`;
   }
 
