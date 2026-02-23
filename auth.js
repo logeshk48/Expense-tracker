@@ -69,27 +69,42 @@ onAuthStateChanged(auth, (user) => {
   let mode = "login";
 
   function setMode(m){
-    mode = m;
-    err.textContent = "";
+  mode = m;
+  err.textContent = "";
 
-    if (mode === "login"){
-      modeLoginBtn?.classList.add("active");
-      modeSignupBtn?.classList.remove("active");
-      nameWrap?.classList.add("hidden");
-      confirmWrap?.classList.add("hidden");
-      primaryBtn.innerHTML = `<span class="btn-icon">→</span> Login`;
-      if (hint) hint.textContent = "Use your email & password to login.";
-      if (fullName) fullName.value = "";
-      if (confirmEl) confirmEl.value = "";
-    } else {
-      modeSignupBtn?.classList.add("active");
-      modeLoginBtn?.classList.remove("active");
-      nameWrap?.classList.remove("hidden");
-      confirmWrap?.classList.remove("hidden");
-      primaryBtn.innerHTML = `<span class="btn-icon">＋</span> Create Account`;
-      if (hint) hint.textContent = "Create your account using email + password.";
-    }
+  if (mode === "login") {
+
+    // Activate login tab
+    modeLoginBtn.classList.add("active");
+    modeSignupBtn.classList.remove("active");
+
+    // Hide signup-only fields
+    nameWrap.classList.add("hidden");
+    confirmWrap.classList.add("hidden");
+
+    // Show Google in login
+    googleBtn.style.display = "block";
+
+    primaryBtn.innerHTML = `<span class="btn-icon">→</span> Login`;
+    hint.textContent = "Use your email & password to login.";
+
+  } else {
+
+    // Activate signup tab
+    modeSignupBtn.classList.add("active");
+    modeLoginBtn.classList.remove("active");
+
+    // Show signup fields
+    nameWrap.classList.remove("hidden");
+    confirmWrap.classList.remove("hidden");
+
+    // Show Google in signup too (optional)
+    googleBtn.style.display = "block";
+
+    primaryBtn.innerHTML = `<span class="btn-icon">＋</span> Create Account`;
+    hint.textContent = "Create your account using email + password.";
   }
+}
 
   modeLoginBtn?.addEventListener("click", () => setMode("login"));
   modeSignupBtn?.addEventListener("click", () => setMode("signup"));
