@@ -1,3 +1,4 @@
+import { initReportUI, renderReport as renderReportModule } from "./report.js";
 import { auth } from "./firebase-config.js?v=900";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import {
@@ -106,6 +107,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load expenses
   let expenses = await loadExpensesFromCloud(uid);
+  initReportUI({
+  getExpenses: () => expenses,
+  money,
+  ymd
+});
 
   /* ---------------------------
      Tabs logic
@@ -113,7 +119,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function setActiveTab(tabId){
     tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
     panels.forEach(p => p.classList.toggle("active", p.id === tabId));
-    if (tabId === "report") renderReport();
+    if (tabId === "report") renderReportModule(expenses, money, ymd);
     if (tabId === "tips") renderTipsPreview();
     if (tabId === "analyze") renderAnalyze();
     if (tabId === "chat") renderChatWelcome();
@@ -181,6 +187,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const activePanel = document.querySelector(".panel.active")?.id;
     if (activePanel === "report") renderReport();
     if (activePanel === "analyze") renderAnalyze();
+    const active = document.querySelector(".panel.active")?.id;
+    if (active === "report") renderReportModule(expenses, money, ymd);
+    
   }
 
   /* ---------------------------
@@ -444,7 +453,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return `rgba(${r},${g},${b},${a})`;
   }
 
-  function renderReport(){
+  function renderReport_old(){
     const catTotals = buildCategoryTotals(expenses);
     const last7 = lastNDaysTotals(expenses, 7);
     const months6 = lastNMonthsTotals(expenses, 6);
