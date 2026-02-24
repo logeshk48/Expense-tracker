@@ -1,8 +1,11 @@
 // report.js — Report tab module (Chart.js + Filters + Premium Additions)
-// Adds (without changing HTML/CSS files):
-// 1) This Month vs Last Month cards
-// 2) Top 3 Categories cards
-// 3) Monthly Trend chart (last 6 months)
+// Includes:
+// 1) Category Distribution donut
+// 2) Daily Spending Trend (last 7 days)
+// 3) Filter UI + filtered cards
+// 4) Premium card: Month vs Last Month + Top 3 categories + 6-month trend
+// 5) Averages: Avg/Active Day + Avg/Calendar Day + Avg/Month
+// 6) Highest & Lowest single day shown under Daily Trend
 
 let _getExpenses = null;
 let _money = null;
@@ -97,28 +100,35 @@ function renderFilteredCards(expenses){
 }
 
 /* ---------------------------
-   Core charts (existing)
+   Core charts (existing) + Highest/Lowest under bar chart
 --------------------------- */
 function renderCharts(expenses, money, ymd){
   const { pieCanvas, barCanvas } = getEls();
   if (!pieCanvas || !barCanvas) return;
 
+  // Category totals (donut)
   const catTotals = buildCategoryTotals(expenses);
   const pieLabels = catTotals.map(x => x.category);
   const pieValues = catTotals.map(x => x.total);
 
+  // Last 7 days (bar)
   const last7 = lastNDaysTotals(expenses, ymd, 7);
   const barLabels = last7.map(x => x.date.slice(5)); // MM-DD
   const barValues = last7.map(x => x.total);
 
+  // Destroy old charts to avoid duplicates
   safeDestroy(pieChartInstance);
   safeDestroy(barChartInstance);
 
+  // Create new charts
   pieChartInstance = new Chart(pieCanvas, {
     type: "doughnut",
     data: {
       labels: pieLabels.length ? pieLabels : ["No Data"],
-      datasets: [{ data: pieValues.length ? pieValues : [1], borderWidth: 0 }]
+      datasets: [{
+        data: pieValues.length ? pieValues : [1],
+        borderWidth: 0,
+      }]
     },
     options: {
       responsive: true,
@@ -139,20 +149,74 @@ function renderCharts(expenses, money, ymd){
     type: "bar",
     data: {
       labels: barLabels,
-      datasets: [{ label: "Spending", data: barValues, borderWidth: 0 }]
+      datasets: [{
+        label: "Spending",
+        data: barValues,
+        borderWidth: 0,
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => money(ctx.parsed.y || 0) } }
+        tooltip: {
+          callbacks: { label: (ctx) => money(ctx.parsed.y || 0) }
+        }
       },
       scales: {
         y: { ticks: { callback: (v) => money(v) } }
       }
     }
   });
+
+  // -----------------------------
+  // HIGHEST & LOWEST SINGLE DAY (shown under Daily Spending Trend)
+  // -----------------------------
+  const byDay = new Map();
+  for (const e of expenses){
+    const d = e.date;
+    byDay.set(d, (byDay.get(d) || 0) + Number(e.amount || 0));
+  }
+
+  let highest = null;
+  let lowest = null;
+
+  for (const [date, total] of byDay.entries()){
+    if (!highest || total > highest.total) highest = { date, total };
+    if (!lowest || total < lowest.total) lowest = { date, total };
+  }
+
+  const barCard = barCanvas.closest(".card");
+  if (barCard){
+    let dayBlock = barCard.querySelector("#rpDayExtremesTrend");
+
+    if (!dayBlock){
+      dayBlock = document.createElement("div");
+      dayBlock.id = "rpDayExtremesTrend";
+      dayBlock.className = "result-cards";
+      dayBlock.style.marginTop = "14px";
+
+      dayBlock.innerHTML = `
+        <div class="result-card">
+          <div class="result-label">Highest Single Day</div>
+          <div class="result-value" id="rpHighestTrend" style="color:#e53935;">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Lowest Single Day</div>
+          <div class="result-value" id="rpLowestTrend" style="color:#43a047;">—</div>
+        </div>
+      `;
+
+      barCard.appendChild(dayBlock);
+    }
+
+    const highEl = barCard.querySelector("#rpHighestTrend");
+    const lowEl  = barCard.querySelector("#rpLowestTrend");
+
+    if (highEl) highEl.textContent = highest ? `${highest.date} • ${money(highest.total)}` : "—";
+    if (lowEl)  lowEl.textContent  = lowest  ? `${lowest.date} • ${money(lowest.total)}`  : "—";
+  }
 }
 
 /* ---------------------------
@@ -216,9 +280,8 @@ function ensurePremiumCard(){
   if (!reportSection) return null;
 
   // Prevent duplicates
-  if (reportSection.querySelector('[data-report-premium="1"]')) {
-    return reportSection.querySelector('[data-report-premium="1"]');
-  }
+  const existing = reportSection.querySelector('[data-report-premium="1"]');
+  if (existing) return existing;
 
   // Create a new card using existing classes (design stays same)
   const card = document.createElement("div");
@@ -231,7 +294,7 @@ function ensurePremiumCard(){
       <p class="subtitle">Month comparison • Top categories • 6-month trend</p>
     </div>
 
-    <div class="result-cards">
+    <div class="result-cards" id="rpBaseCards">
       <div class="result-card">
         <div class="result-label">This Month</div>
         <div class="result-value" id="rpThisMonth">₹0</div>
@@ -289,7 +352,7 @@ function renderPremium(allExpenses){
   const pctText = pct == null ? "" : ` (${pct.toFixed(1)}%)`;
   if (chgEl) chgEl.textContent = `${sign} ${_money(Math.abs(diff))}${pctText}`;
 
-  // Top 3 categories from THIS MONTH (feels most useful)
+  // Top 3 categories from THIS MONTH
   const top = buildCategoryTotals(thisMonth);
   const t1 = top[0] ? `${top[0].category} • ${_money(top[0].total)}` : "—";
   const t2 = top[1] ? `${top[1].category} • ${_money(top[1].total)}` : "—";
@@ -298,7 +361,7 @@ function renderPremium(allExpenses){
   if (top2El) top2El.textContent = t2;
   if (top3El) top3El.textContent = t3;
 
-  // Monthly trend (last 6 months)
+  // 6-month trend chart
   if (trendCanvas){
     const series = lastNMonthsSeries(allExpenses, 6);
 
@@ -320,9 +383,7 @@ function renderPremium(allExpenses){
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: {
-            callbacks: { label: (ctx) => _money(ctx.parsed.y || 0) }
-          }
+          tooltip: { callbacks: { label: (ctx) => _money(ctx.parsed.y || 0) } }
         },
         scales: {
           y: { ticks: { callback: (v) => _money(v) } }
@@ -330,61 +391,59 @@ function renderPremium(allExpenses){
       }
     });
   }
+
   // -----------------------------
-// AVERAGE CALCULATIONS
-// -----------------------------
-const totalOverall = allExpenses.reduce((s,x)=> s + Number(x.amount||0), 0);
+  // AVERAGE CALCULATIONS (Premium Card)
+  // -----------------------------
+  const totalOverall = allExpenses.reduce((s,x)=> s + Number(x.amount||0), 0);
 
-// 1️⃣ Avg per Active Day
-const uniqueDays = new Set(allExpenses.map(e => e.date)).size || 1;
-const avgPerActiveDay = totalOverall / uniqueDays;
+  const uniqueDays = new Set(allExpenses.map(e => e.date)).size || 1;
+  const avgPerActiveDay = totalOverall / uniqueDays;
 
-// 2️⃣ Avg per Calendar Day (This Month)
-const now = new Date();
-const daysPassed = now.getDate();
-const avgPerCalendarDay = thisTotal / (daysPassed || 1);
+  const now = new Date();
+  const daysPassed = now.getDate() || 1;
+  const avgPerCalendarDay = thisTotal / daysPassed;
 
-// 3️⃣ Avg per Month (Overall)
-const monthSet = new Set(
-  allExpenses.map(e => {
-    const d = parseDateSafe(e.date);
-    return `${d.getFullYear()}-${d.getMonth()}`;
-  })
-);
-const totalMonths = monthSet.size || 1;
-const avgPerMonth = totalOverall / totalMonths;
+  const monthSet = new Set(
+    allExpenses.map(e => {
+      const d = parseDateSafe(e.date);
+      return `${d.getFullYear()}-${d.getMonth()}`; // unique month bucket
+    })
+  );
+  const totalMonths = monthSet.size || 1;
+  const avgPerMonth = totalOverall / totalMonths;
 
-// Create UI if not exists
-let avgBlock = document.getElementById("rpAveragesBlock");
+  let avgBlock = document.getElementById("rpAveragesBlock");
+  if (!avgBlock){
+    avgBlock = document.createElement("div");
+    avgBlock.id = "rpAveragesBlock";
+    avgBlock.className = "result-cards";
+    avgBlock.style.marginTop = "12px";
 
-if (!avgBlock){
-  avgBlock = document.createElement("div");
-  avgBlock.id = "rpAveragesBlock";
-  avgBlock.className = "result-cards";
-  avgBlock.style.marginTop = "12px";
+    avgBlock.innerHTML = `
+      <div class="result-card">
+        <div class="result-label">Avg / Active Day</div>
+        <div class="result-value" id="rpAvgActive">₹0</div>
+      </div>
+      <div class="result-card">
+        <div class="result-label">Avg / Calendar Day</div>
+        <div class="result-value" id="rpAvgCalendar">₹0</div>
+      </div>
+      <div class="result-card">
+        <div class="result-label">Avg / Month</div>
+        <div class="result-value" id="rpAvgMonth">₹0</div>
+      </div>
+    `;
 
-  avgBlock.innerHTML = `
-    <div class="result-card">
-      <div class="result-label">Avg / Active Day</div>
-      <div class="result-value" id="rpAvgActive">₹0</div>
-    </div>
-    <div class="result-card">
-      <div class="result-label">Avg / Calendar Day</div>
-      <div class="result-value" id="rpAvgCalendar">₹0</div>
-    </div>
-    <div class="result-card">
-      <div class="result-label">Avg / Month</div>
-      <div class="result-value" id="rpAvgMonth">₹0</div>
-    </div>
-  `;
+    card.appendChild(avgBlock);
+  }
 
-  card.appendChild(avgBlock);
-}
-
-// Update values
-document.getElementById("rpAvgActive").textContent = _money(avgPerActiveDay);
-document.getElementById("rpAvgCalendar").textContent = _money(avgPerCalendarDay);
-document.getElementById("rpAvgMonth").textContent = _money(avgPerMonth);
+  const a1 = document.getElementById("rpAvgActive");
+  const a2 = document.getElementById("rpAvgCalendar");
+  const a3 = document.getElementById("rpAvgMonth");
+  if (a1) a1.textContent = _money(avgPerActiveDay);
+  if (a2) a2.textContent = _money(avgPerCalendarDay);
+  if (a3) a3.textContent = _money(avgPerMonth);
 }
 
 /* ---------------------------
