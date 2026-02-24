@@ -187,36 +187,69 @@ function renderCharts(expenses, money, ymd){
     if (!lowest || total < lowest.total) lowest = { date, total };
   }
 
-  const barCard = barCanvas.closest(".card");
-  if (barCard){
-    let dayBlock = barCard.querySelector("#rpDayExtremesTrend");
+  // -----------------------------
+// HIGHEST & LOWEST SINGLE DAY (Below Daily Spending Trend)
+// -----------------------------
+const byDay = new Map();
 
-    if (!dayBlock){
-      dayBlock = document.createElement("div");
-      dayBlock.id = "rpDayExtremesTrend";
-      dayBlock.className = "result-cards";
-      dayBlock.style.marginTop = "14px";
+for (const e of expenses){
+  byDay.set(e.date, (byDay.get(e.date) || 0) + Number(e.amount || 0));
+}
 
-      dayBlock.innerHTML = `
-        <div class="result-card">
-          <div class="result-label">Highest Single Day</div>
-          <div class="result-value" id="rpHighestTrend" style="color:#e53935;">—</div>
-        </div>
-        <div class="result-card">
-          <div class="result-label">Lowest Single Day</div>
-          <div class="result-value" id="rpLowestTrend" style="color:#43a047;">—</div>
-        </div>
-      `;
+let highest = null;
+let lowest = null;
 
-      barCard.appendChild(dayBlock);
-    }
-
-    const highEl = barCard.querySelector("#rpHighestTrend");
-    const lowEl  = barCard.querySelector("#rpLowestTrend");
-
-    if (highEl) highEl.textContent = highest ? `${highest.date} • ${money(highest.total)}` : "—";
-    if (lowEl)  lowEl.textContent  = lowest  ? `${lowest.date} • ${money(lowest.total)}`  : "—";
+for (const [date, total] of byDay.entries()){
+  if (!highest || total > highest.total){
+    highest = { date, total };
   }
+  if (!lowest || total < lowest.total){
+    lowest = { date, total };
+  }
+}
+
+// Get bar chart container properly
+const barContainer = barCanvas.parentElement;
+
+if (barContainer){
+
+  let dayBlock = barContainer.querySelector("#rpDayExtremesTrend");
+
+  if (!dayBlock){
+    dayBlock = document.createElement("div");
+    dayBlock.id = "rpDayExtremesTrend";
+    dayBlock.className = "result-cards";
+    dayBlock.style.marginTop = "14px";
+
+    dayBlock.innerHTML = `
+      <div class="result-card">
+        <div class="result-label">Highest Single Day</div>
+        <div class="result-value" style="color:#e53935;" id="rpHighestTrend">—</div>
+      </div>
+      <div class="result-card">
+        <div class="result-label">Lowest Single Day</div>
+        <div class="result-value" style="color:#43a047;" id="rpLowestTrend">—</div>
+      </div>
+    `;
+
+    barContainer.appendChild(dayBlock);
+  }
+
+  const highEl = document.getElementById("rpHighestTrend");
+  const lowEl  = document.getElementById("rpLowestTrend");
+
+  if (highEl){
+    highEl.textContent = highest
+      ? `${highest.date} • ${money(highest.total)}`
+      : "—";
+  }
+
+  if (lowEl){
+    lowEl.textContent = lowest
+      ? `${lowest.date} • ${money(lowest.total)}`
+      : "—";
+  }
+}
 }
 
 /* ---------------------------
