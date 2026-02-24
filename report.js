@@ -113,14 +113,14 @@ function renderCharts(expenses, money, ymd){
 
   // Last 7 days (bar)
   const last7 = lastNDaysTotals(expenses, ymd, 7);
-  const barLabels = last7.map(x => x.date.slice(5)); // MM-DD
+  const barLabels = last7.map(x => x.date.slice(5));
   const barValues = last7.map(x => x.total);
 
-  // Destroy old charts to avoid duplicates
+  // Destroy old charts
   safeDestroy(pieChartInstance);
   safeDestroy(barChartInstance);
 
-  // Create new charts
+  // Donut chart
   pieChartInstance = new Chart(pieCanvas, {
     type: "doughnut",
     data: {
@@ -145,6 +145,7 @@ function renderCharts(expenses, money, ymd){
     }
   });
 
+  // Bar chart
   barChartInstance = new Chart(barCanvas, {
     type: "bar",
     data: {
@@ -171,85 +172,68 @@ function renderCharts(expenses, money, ymd){
   });
 
   // -----------------------------
-  // HIGHEST & LOWEST SINGLE DAY (shown under Daily Spending Trend)
+  // HIGHEST & LOWEST SINGLE DAY
   // -----------------------------
+
   const byDay = new Map();
+
   for (const e of expenses){
-    const d = e.date;
-    byDay.set(d, (byDay.get(d) || 0) + Number(e.amount || 0));
+    byDay.set(e.date, (byDay.get(e.date) || 0) + Number(e.amount || 0));
   }
 
   let highest = null;
   let lowest = null;
 
   for (const [date, total] of byDay.entries()){
-    if (!highest || total > highest.total) highest = { date, total };
-    if (!lowest || total < lowest.total) lowest = { date, total };
+    if (!highest || total > highest.total){
+      highest = { date, total };
+    }
+    if (!lowest || total < lowest.total){
+      lowest = { date, total };
+    }
   }
 
-  // -----------------------------
-// HIGHEST & LOWEST SINGLE DAY (Below Daily Spending Trend)
-// -----------------------------
-const byDay = new Map();
+  const barContainer = barCanvas.parentElement;
 
-for (const e of expenses){
-  byDay.set(e.date, (byDay.get(e.date) || 0) + Number(e.amount || 0));
-}
+  if (barContainer){
 
-let highest = null;
-let lowest = null;
+    let dayBlock = barContainer.querySelector("#rpDayExtremesTrend");
 
-for (const [date, total] of byDay.entries()){
-  if (!highest || total > highest.total){
-    highest = { date, total };
+    if (!dayBlock){
+      dayBlock = document.createElement("div");
+      dayBlock.id = "rpDayExtremesTrend";
+      dayBlock.className = "result-cards";
+      dayBlock.style.marginTop = "14px";
+
+      dayBlock.innerHTML = `
+        <div class="result-card">
+          <div class="result-label">Highest Single Day</div>
+          <div class="result-value" style="color:#e53935;" id="rpHighestTrend">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Lowest Single Day</div>
+          <div class="result-value" style="color:#43a047;" id="rpLowestTrend">—</div>
+        </div>
+      `;
+
+      barContainer.appendChild(dayBlock);
+    }
+
+    const highEl = document.getElementById("rpHighestTrend");
+    const lowEl  = document.getElementById("rpLowestTrend");
+
+    if (highEl){
+      highEl.textContent = highest
+        ? `${highest.date} • ${money(highest.total)}`
+        : "—";
+    }
+
+    if (lowEl){
+      lowEl.textContent = lowest
+        ? `${lowest.date} • ${money(lowest.total)}`
+        : "—";
+    }
   }
-  if (!lowest || total < lowest.total){
-    lowest = { date, total };
-  }
-}
-
-// Get bar chart container properly
-const barContainer = barCanvas.parentElement;
-
-if (barContainer){
-
-  let dayBlock = barContainer.querySelector("#rpDayExtremesTrend");
-
-  if (!dayBlock){
-    dayBlock = document.createElement("div");
-    dayBlock.id = "rpDayExtremesTrend";
-    dayBlock.className = "result-cards";
-    dayBlock.style.marginTop = "14px";
-
-    dayBlock.innerHTML = `
-      <div class="result-card">
-        <div class="result-label">Highest Single Day</div>
-        <div class="result-value" style="color:#e53935;" id="rpHighestTrend">—</div>
-      </div>
-      <div class="result-card">
-        <div class="result-label">Lowest Single Day</div>
-        <div class="result-value" style="color:#43a047;" id="rpLowestTrend">—</div>
-      </div>
-    `;
-
-    barContainer.appendChild(dayBlock);
-  }
-
-  const highEl = document.getElementById("rpHighestTrend");
-  const lowEl  = document.getElementById("rpLowestTrend");
-
-  if (highEl){
-    highEl.textContent = highest
-      ? `${highest.date} • ${money(highest.total)}`
-      : "—";
-  }
-
-  if (lowEl){
-    lowEl.textContent = lowest
-      ? `${lowest.date} • ${money(lowest.total)}`
-      : "—";
-  }
-}
 }
 
 /* ---------------------------
