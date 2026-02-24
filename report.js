@@ -330,6 +330,61 @@ function renderPremium(allExpenses){
       }
     });
   }
+  // -----------------------------
+// AVERAGE CALCULATIONS
+// -----------------------------
+const totalOverall = allExpenses.reduce((s,x)=> s + Number(x.amount||0), 0);
+
+// 1️⃣ Avg per Active Day
+const uniqueDays = new Set(allExpenses.map(e => e.date)).size || 1;
+const avgPerActiveDay = totalOverall / uniqueDays;
+
+// 2️⃣ Avg per Calendar Day (This Month)
+const now = new Date();
+const daysPassed = now.getDate();
+const avgPerCalendarDay = thisTotal / (daysPassed || 1);
+
+// 3️⃣ Avg per Month (Overall)
+const monthSet = new Set(
+  allExpenses.map(e => {
+    const d = parseDateSafe(e.date);
+    return `${d.getFullYear()}-${d.getMonth()}`;
+  })
+);
+const totalMonths = monthSet.size || 1;
+const avgPerMonth = totalOverall / totalMonths;
+
+// Create UI if not exists
+let avgBlock = document.getElementById("rpAveragesBlock");
+
+if (!avgBlock){
+  avgBlock = document.createElement("div");
+  avgBlock.id = "rpAveragesBlock";
+  avgBlock.className = "result-cards";
+  avgBlock.style.marginTop = "12px";
+
+  avgBlock.innerHTML = `
+    <div class="result-card">
+      <div class="result-label">Avg / Active Day</div>
+      <div class="result-value" id="rpAvgActive">₹0</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Avg / Calendar Day</div>
+      <div class="result-value" id="rpAvgCalendar">₹0</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Avg / Month</div>
+      <div class="result-value" id="rpAvgMonth">₹0</div>
+    </div>
+  `;
+
+  card.appendChild(avgBlock);
+}
+
+// Update values
+document.getElementById("rpAvgActive").textContent = _money(avgPerActiveDay);
+document.getElementById("rpAvgCalendar").textContent = _money(avgPerCalendarDay);
+document.getElementById("rpAvgMonth").textContent = _money(avgPerMonth);
 }
 
 /* ---------------------------
