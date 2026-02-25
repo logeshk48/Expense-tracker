@@ -1,6 +1,7 @@
 // app.js (Controller + Modular)
 // report.js handles charts + filter UI
 // expense.js handles Expense tab logic
+// tips.js handles Tips tab logic
 
 import { auth } from "./firebase-config.js?v=901";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
@@ -11,6 +12,7 @@ import {
 
 import { initReportUI, renderReport } from "./report.js?v=901";
 import { initExpenseEngine } from "./expense.js?v=901";
+import { initTipsUI, renderTips } from "./tips.js?v=901";
 
 /* ---------------------------
    Helpers
@@ -44,10 +46,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const insightsBox = document.getElementById("insightsBox");
   const topCategoryBox = document.getElementById("topCategoryBox");
 
-  // Tips (still inside app.js for now; later we’ll move to tips.js)
-  const generateTipsBtn = document.getElementById("generateTipsBtn");
-  const tipsList = document.getElementById("tipsList");
-
   // Chat (still inside app.js for now; later we’ll move to chat.js)
   const chatBox = document.getElementById("chatBox");
   const chatInput = document.getElementById("chatInput");
@@ -58,8 +56,53 @@ document.addEventListener("DOMContentLoaded", async () => {
   const getExpenses = () => expenses;
   const setExpenses = (next) => { expenses = next; };
 
+  /* ---------------------------
+     Shared helpers for Analyze + Chat + Tips modules
+  --------------------------- */
+  function parseDateSafe(s){
+    if (!s) return new Date(0);
+    const [y,m,d] = s.split("-").map(Number);
+    return new Date(y, (m||1)-1, d||1);
+  }
+
+  function buildCategoryTotals(list){
+    const m = new Map();
+    for (const e of list){
+      const c = e.category || "Other";
+      m.set(c, (m.get(c) || 0) + Number(e.amount || 0));
+    }
+    const arr = Array.from(m.entries()).map(([k,v]) => ({ category: k, total: v }));
+    arr.sort((a,b)=> b.total - a.total);
+    return arr;
+  }
+
+  function lastNDaysTotals(list, n=7){
+    const now = new Date();
+    const days = [];
+    for (let i=n-1; i>=0; i--){
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const key = ymd(d);
+      days.push({ date: key, total: 0 });
+    }
+    const idx = new Map(days.map((x,i)=> [x.date, i]));
+    for (const e of list){
+      const i = idx.get(e.date);
+      if (i != null) days[i].total += Number(e.amount || 0);
+    }
+    return days;
+  }
+
   // ✅ Init report module ONCE
   initReportUI({ getExpenses, money, ymd });
+
+  // ✅ Init tips module ONCE (NEW)
+  initTipsUI({
+    getExpenses,
+    money,
+    ymd,
+    parseDateSafe
+  });
 
   // ✅ Init expense module ONCE
   initExpenseEngine({
@@ -83,7 +126,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     panels.forEach(p => p.classList.toggle("active", p.id === tabId));
 
     if (tabId === "report") renderReport(expenses, money, ymd);
-    if (tabId === "tips") renderTipsPreview();
+    if (tabId === "tips") renderTips();          // ✅ NEW
     if (tabId === "analyze") renderAnalyze();
     if (tabId === "chat") renderChatWelcome();
   }
@@ -99,6 +142,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const activePanel = document.querySelector(".panel.active")?.id;
     if (activePanel === "report") renderReport(expenses, money, ymd);
     if (activePanel === "analyze") renderAnalyze();
+    // Tips module keeps preview until user clicks generate (by design)
   }
 
   /* ---------------------------
@@ -135,102 +179,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       const activePanel = document.querySelector(".panel.active")?.id;
       if (activePanel === "report") renderReport(expenses, money, ymd);
 
-      // Also update tips/analyze placeholders if needed
-      renderTipsPreview();
+      // Tips & Analyze refresh
+      renderTips();      // ✅ NEW
       renderAnalyze();
     });
   }
-
-  /* ---------------------------
-     Shared helpers for Tips + Analyze + Chat (still here for now)
-  --------------------------- */
-  function parseDateSafe(s){
-    if (!s) return new Date(0);
-    const [y,m,d] = s.split("-").map(Number);
-    return new Date(y, (m||1)-1, d||1);
-  }
-
-  function buildCategoryTotals(list){
-    const m = new Map();
-    for (const e of list){
-      const c = e.category || "Other";
-      m.set(c, (m.get(c) || 0) + Number(e.amount || 0));
-    }
-    const arr = Array.from(m.entries()).map(([k,v]) => ({ category: k, total: v }));
-    arr.sort((a,b)=> b.total - a.total);
-    return arr;
-  }
-
-  function lastNDaysTotals(list, n=7){
-    const now = new Date();
-    const days = [];
-    for (let i=n-1; i>=0; i--){
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const key = ymd(d);
-      days.push({ date: key, total: 0 });
-    }
-    const idx = new Map(days.map((x,i)=> [x.date, i]));
-    for (const e of list){
-      const i = idx.get(e.date);
-      if (i != null) days[i].total += Number(e.amount || 0);
-    }
-    return days;
-  }
-
-  /* ---------------------------
-     TIPS (still here for now)
-  --------------------------- */
-  function renderTipsPreview(){
-    if (!tipsList) return;
-    if (!expenses.length) {
-      tipsList.innerHTML = `<li class="tip-placeholder">Add some expenses to generate tips.</li>`;
-    }
-  }
-
-  function generateTips(){
-    if (!tipsList) return;
-    if (!expenses.length){
-      tipsList.innerHTML = `<li class="tip-placeholder">Add some expenses to generate tips.</li>`;
-      return;
-    }
-
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth();
-
-    const thisMonth = expenses.filter(e => {
-      const d = parseDateSafe(e.date);
-      return d.getFullYear() === y && d.getMonth() === m;
-    });
-
-    const total = thisMonth.reduce((s,x)=> s + Number(x.amount||0), 0);
-    const catTotals = buildCategoryTotals(thisMonth);
-
-    const tips = [];
-    if (total > 0) tips.push(`Your total spend this month is <strong>${money(total)}</strong>. Keep tracking daily for better control.`);
-
-    const top = catTotals[0];
-    if (top) tips.push(`Your highest category is <strong>${top.category}</strong> (${money(top.total)}). Consider setting a mini-limit for this category.`);
-
-    const food = catTotals.find(x => x.category.toLowerCase() === "food");
-    if (food && total > 0 && (food.total/total) > 0.35){
-      tips.push(`Food spending is above <strong>35%</strong> this month. Try 2–3 home meals per week to reduce cost.`);
-    }
-
-    const travel = catTotals.find(x => x.category.toLowerCase() === "travel");
-    if (travel && travel.total > 0){
-      tips.push(`Travel spend is <strong>${money(travel.total)}</strong>. Group trips and prefer weekly passes when possible.`);
-    }
-
-    const last7 = lastNDaysTotals(expenses, 7);
-    const avg7 = last7.reduce((s,x)=>s+x.total,0) / 7;
-    tips.push(`Your 7-day average spend is <strong>${money(avg7)}</strong>. Try to keep daily spend near this average.`);
-
-    tipsList.innerHTML = tips.map(t => `<li>${t}</li>`).join("");
-  }
-
-  if (generateTipsBtn) generateTipsBtn.addEventListener("click", generateTips);
 
   /* ---------------------------
      ANALYZE (still here for now)
@@ -347,6 +300,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Initial renders for non-expense tabs
-  renderTipsPreview();
+  renderTips();     // ✅ NEW (shows preview from tips.js)
   renderAnalyze();
 });
