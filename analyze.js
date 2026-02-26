@@ -95,6 +95,9 @@ export function initAnalyzeUI({ getExpenses, money, parseDateSafe }) {
   _money = money;
   _parseDateSafe = parseDateSafe;
 }
+function clamp(n, a, b) { 
+  return Math.max(a, Math.min(b, n)); 
+}
 
 export function renderAnalyze() {
   const expenses = _getExpenses ? _getExpenses() : [];
@@ -221,6 +224,29 @@ export function renderAnalyze() {
   const topText = top ? `${top.category} • ${_money(top.total)}` : "—";
   const content = topCategoryBox.querySelector(".highlight-content");
   if (content) content.textContent = topText;
+  // ✅ Feature #1: Top Category % + Progress Bar
+const share = (top && totalAll > 0) ? (top.total / totalAll) : 0;
+const pct = Math.round(share * 100);
+const barWidth = clamp(pct, 0, 100);
+
+let extra = topCategoryBox.querySelector(".topcat-extra");
+if (!extra) {
+  extra = document.createElement("div");
+  extra.className = "topcat-extra";
+  extra.style.marginTop = "10px";
+  topCategoryBox.appendChild(extra);
+}
+
+extra.innerHTML = `
+  <div style="font-size:12px; opacity:.9; display:flex; justify-content:space-between;">
+    <span>Top category share</span>
+    <b>${top ? pct + "%" : "—"}</b>
+  </div>
+
+  <div style="height:8px; margin-top:8px; border-radius:999px; background:rgba(255,255,255,.12); overflow:hidden;">
+    <div style="height:100%; width:${top ? barWidth : 0}%; border-radius:999px; background:rgba(130, 220, 255, .75);"></div>
+  </div>
+`;
 
   // Add small “AI note” under Top Category card WITHOUT HTML change:
   // We’ll reuse the card by adding title as tooltip.
