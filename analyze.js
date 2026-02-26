@@ -74,7 +74,6 @@ function lastNDaysTotals(expenses, n = 7) {
 }
 
 function classifyTrend(prev, curr) {
-  // avoid divide-by-zero explosions
   if (prev <= 0 && curr > 0) return { label: "Up", note: "New spending spike detected." };
   if (prev <= 0 && curr <= 0) return { label: "Stable", note: "No spending in both periods." };
 
@@ -90,13 +89,28 @@ function weekdayName(i) {
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][i] || "—";
 }
 
+function clamp(n, a, b) {
+  return Math.max(a, Math.min(b, n));
+}
+
+// ✅ Feature #2 helper
+function getWeekendWeekdayTotals(expenses) {
+  let weekend = 0, weekday = 0;
+
+  for (const e of expenses) {
+    const d = _parseDateSafe(e.date);
+    const day = d.getDay(); // 0 Sun .. 6 Sat
+    if (day === 0 || day === 6) weekend += Number(e.amount || 0);
+    else weekday += Number(e.amount || 0);
+  }
+
+  return { weekend, weekday };
+}
+
 export function initAnalyzeUI({ getExpenses, money, parseDateSafe }) {
   _getExpenses = getExpenses;
   _money = money;
   _parseDateSafe = parseDateSafe;
-}
-function clamp(n, a, b) { 
-  return Math.max(a, Math.min(b, n)); 
 }
 
 export function renderAnalyze() {
@@ -104,7 +118,6 @@ export function renderAnalyze() {
 
   const insightsBox = document.getElementById("insightsBox");
   const topCategoryBox = document.getElementById("topCategoryBox");
-
   if (!insightsBox || !topCategoryBox) return;
 
   const totalAll = expenses.reduce((s, x) => s + Number(x.amount || 0), 0);
@@ -116,9 +129,8 @@ export function renderAnalyze() {
 
   // Highest spend day (overall)
   const byDay = new Map();
-  for (const e of expenses) {
-    byDay.set(e.date, (byDay.get(e.date) || 0) + Number(e.amount || 0));
-  }
+  for (const e of expenses) byDay.set(e.date, (byDay.get(e.date) || 0) + Number(e.amount || 0));
+
   let bestDay = null;
   for (const [date, val] of byDay.entries()) {
     if (!bestDay || val > bestDay.val) bestDay = { date, val };
@@ -128,27 +140,26 @@ export function renderAnalyze() {
   const uniqueDays = new Set(expenses.map(e => e.date)).size || 1;
   const avgPerActiveDay = totalAll / uniqueDays;
 
+  // ✅ Feature #2: weekend vs weekday totals
+  const ww = getWeekendWeekdayTotals(expenses);
+
   // ---------------------------
   // AI-style Predictions (rule-based)
   // ---------------------------
-  // Trend: last 7 vs previous 7
   const last7 = lastNDaysTotals(expenses, 7);
-  const prev7 = lastNDaysTotals(expenses, 14).slice(0, 7); // first 7 of last 14 = previous week
+  const prev7 = lastNDaysTotals(expenses, 14).slice(0, 7);
   const sumLast7 = last7.reduce((s, x) => s + x.total, 0);
   const sumPrev7 = prev7.reduce((s, x) => s + x.total, 0);
   const trend = classifyTrend(sumPrev7, sumLast7);
 
-  // Forecast next 7 days (simple avg-based)
   const avgLast7 = sumLast7 / 7;
   const forecast7 = avgLast7 * 7;
 
-  // Overspend weekday pattern (using last 30 days)
+  // Overspend weekday pattern (last 30 days)
   const now = new Date();
   const from30 = new Date(now);
   from30.setDate(from30.getDate() - 29);
-  const last30 = getRangeTotals(expenses, from30, now);
 
-  // compute weekday totals for last 30 days
   const weekdayTotals = new Array(7).fill(0);
   for (const e of expenses) {
     const d = _parseDateSafe(e.date);
@@ -158,7 +169,7 @@ export function renderAnalyze() {
   let peakWeekday = 0;
   for (let i = 1; i < 7; i++) if (weekdayTotals[i] > weekdayTotals[peakWeekday]) peakWeekday = i;
 
-  // Budget risk (optional, if saved)
+  // Budget risk (optional)
   const savedBudget = Number(localStorage.getItem("et_monthly_budget") || 0);
   const startM = startOfMonth(now);
   const endM = endOfMonth(now);
@@ -173,7 +184,7 @@ export function renderAnalyze() {
   if (savedBudget > 0) {
     const remaining = savedBudget - thisMonth.total;
     const allowedPerDay = daysLeft > 0 ? (remaining / daysLeft) : remaining;
-    const pace = thisMonth.total / Math.max(1, dayOfMonth); // avg per day so far
+    const pace = thisMonth.total / Math.max(1, dayOfMonth);
     const targetPace = savedBudget / daysInMonth;
 
     if (thisMonth.total > savedBudget) {
@@ -188,7 +199,7 @@ export function renderAnalyze() {
     }
   }
 
-  // Top category dominance warning
+  // Top category dominance tooltip
   let topCategoryNote = "—";
   if (top && totalAll > 0) {
     const share = top.total / totalAll;
@@ -206,6 +217,12 @@ export function renderAnalyze() {
     { k: "Avg / Active Day", v: _money(avgPerActiveDay) },
     { k: "Most Expensive Day", v: bestDay ? `${bestDay.date} • ${_money(bestDay.val)}` : "—" },
 
+    // ✅ Feature #2 card
+    {
+      k: "Weekend vs Weekday",
+      v: `${_money(ww.weekend)} • ${ww.weekend >= ww.weekday ? "Weekend-heavy" : "Weekday-heavy"}`
+    },
+
     // AI-style cards
     { k: "Trend (7d vs 7d)", v: `${trend.label} • ${trend.note}` },
     { k: "Next 7d Forecast", v: `${_money(forecast7)} (based on avg ${_money(avgLast7)}/day)` },
@@ -220,62 +237,46 @@ export function renderAnalyze() {
     </div>
   `).join("");
 
-  // Top category highlight (existing card)
+  // ---------------------------
+  // Top category highlight + Feature #1 bar
+  // ---------------------------
+  const contentWrap = topCategoryBox.querySelector(".highlight-content");
   const topText = top ? `${top.category} • ${_money(top.total)}` : "—";
-  const content = topCategoryBox.querySelector(".highlight-content");
-  if (content) content.textContent = topText;
-  // ✅ Feature #1: Top Category % + Progress Bar
-const share = (top && totalAll > 0) ? (top.total / totalAll) : 0;
-const pct = Math.round(share * 100);
-const barWidth = clamp(pct, 0, 100);
+  if (contentWrap) contentWrap.textContent = topText;
 
-let extra = topCategoryBox.querySelector(".topcat-extra");
-// ✅ Feature #1: Top Category % + Progress Bar (FIXED for your flex design)
-const share = (top && totalAll > 0) ? (top.total / totalAll) : 0;
-const pct = Math.round(share * 100);
-const barWidth = clamp(pct, 0, 100);
+  // ✅ Feature #1: Top Category Share Bar (fixed)
+  const share = (top && totalAll > 0) ? (top.total / totalAll) : 0;
+  const pct = Math.round(share * 100);
+  const barWidth = clamp(pct, 0, 100);
 
-const contentWrap = topCategoryBox.querySelector(".highlight-content");
-if (contentWrap) {
-  // Make highlight-content act like a small column layout
-  contentWrap.style.display = "flex";
-  contentWrap.style.flexDirection = "column";
-  contentWrap.style.alignItems = "center";
-  contentWrap.style.gap = "10px";
+  if (contentWrap) {
+    // Make highlight-content act like a column
+    contentWrap.style.display = "flex";
+    contentWrap.style.flexDirection = "column";
+    contentWrap.style.alignItems = "center";
+    contentWrap.style.gap = "10px";
 
-  let extra = topCategoryBox.querySelector(".topcat-extra");
-  if (!extra) {
-    extra = document.createElement("div");
-    extra.className = "topcat-extra";
-    extra.style.width = "min(360px, 92%)";
-    extra.style.textAlign = "left";
-    contentWrap.appendChild(extra);
+    let extra = topCategoryBox.querySelector(".topcat-extra");
+    if (!extra) {
+      extra = document.createElement("div");
+      extra.className = "topcat-extra";
+      extra.style.width = "min(360px, 92%)";
+      extra.style.textAlign = "left";
+      contentWrap.appendChild(extra);
+    }
+
+    extra.innerHTML = `
+      <div style="font-size:12px; opacity:.9; display:flex; justify-content:space-between;">
+        <span>Top category share</span>
+        <b>${top ? pct + "%" : "—"}</b>
+      </div>
+
+      <div style="height:8px; margin-top:8px; border-radius:999px; background:rgba(255,255,255,.12); overflow:hidden;">
+        <div style="height:100%; width:${top ? barWidth : 0}%; border-radius:999px; background:rgba(130, 220, 255, .75);"></div>
+      </div>
+    `;
   }
 
-  extra.innerHTML = `
-    <div style="font-size:12px; opacity:.9; display:flex; justify-content:space-between;">
-      <span>Top category share</span>
-      <b>${top ? pct + "%" : "—"}</b>
-    </div>
-
-    <div style="height:8px; margin-top:8px; border-radius:999px; background:rgba(255,255,255,.12); overflow:hidden;">
-      <div style="height:100%; width:${top ? barWidth : 0}%; border-radius:999px; background:rgba(130, 220, 255, .75);"></div>
-    </div>
-  `;
-}
-
-extra.innerHTML = `
-  <div style="font-size:12px; opacity:.9; display:flex; justify-content:space-between;">
-    <span>Top category share</span>
-    <b>${top ? pct + "%" : "—"}</b>
-  </div>
-
-  <div style="height:8px; margin-top:8px; border-radius:999px; background:rgba(255,255,255,.12); overflow:hidden;">
-    <div style="height:100%; width:${top ? barWidth : 0}%; border-radius:999px; background:rgba(130, 220, 255, .75);"></div>
-  </div>
-`;
-
-  // Add small “AI note” under Top Category card WITHOUT HTML change:
-  // We’ll reuse the card by adding title as tooltip.
-  if (topCategoryBox) topCategoryBox.title = topCategoryNote;
+  // Tooltip note
+  topCategoryBox.title = topCategoryNote;
 }
