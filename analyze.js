@@ -106,6 +106,29 @@ function getWeekendWeekdayTotals(expenses) {
 
   return { weekend, weekday };
 }
+function getSpendingStreak(expenses) {
+  // streak based on unique dates with entries, counted from latest date backwards
+  const dates = Array.from(new Set(expenses.map(e => e.date).filter(Boolean))).sort();
+  if (dates.length === 0) return 0;
+
+  let streak = 1;
+  let last = _parseDateSafe(dates[dates.length - 1]);
+  last.setHours(0, 0, 0, 0);
+
+  for (let i = dates.length - 2; i >= 0; i--) {
+    const cur = _parseDateSafe(dates[i]);
+    cur.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.round((last - cur) / (1000 * 60 * 60 * 24));
+    if (diffDays === 1) {
+      streak++;
+      last = cur;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
 
 export function initAnalyzeUI({ getExpenses, money, parseDateSafe }) {
   _getExpenses = getExpenses;
@@ -142,6 +165,7 @@ export function renderAnalyze() {
 
   // ✅ Feature #2: weekend vs weekday totals
   const ww = getWeekendWeekdayTotals(expenses);
+  const streak = getSpendingStreak(expenses);
 
   // ---------------------------
   // AI-style Predictions (rule-based)
@@ -222,6 +246,13 @@ export function renderAnalyze() {
       k: "Weekend vs Weekday",
       v: `${_money(ww.weekend)} • ${ww.weekend >= ww.weekday ? "Weekend-heavy" : "Weekday-heavy"}`
     },
+    {
+        k: "Spending Streak",
+        v: streak > 0 
+        ? `${streak} day${streak === 1 ? "" : "s"} • Consistent tracking`
+        : "0 days • Start today"
+},
+
 
     // AI-style cards
     { k: "Trend (7d vs 7d)", v: `${trend.label} • ${trend.note}` },
