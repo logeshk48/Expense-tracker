@@ -2,7 +2,7 @@
 // report.js handles charts + filter UI
 // expense.js handles Expense tab logic
 // tips.js handles Tips tab logic
-
+import { initAnalyzeUI, renderAnalyze as renderAnalyzeModule } from "./analyze.js?v=200";
 import { auth } from "./firebase-config.js?v=901";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import {
@@ -12,7 +12,7 @@ import {
 
 import { initReportUI, renderReport } from "./report.js?v=901";
 import { initExpenseEngine } from "./expense.js?v=901";
-import { initTipsUI, renderTips } from "./tips.js?v=901";
+import { initTipsUI, renderTips } from "./tip.js?v=901";
 
 /* ---------------------------
    Helpers
@@ -53,6 +53,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load expenses (shared state owned by app.js)
   let expenses = await loadExpensesFromCloud(uid);
+  initAnalyzeUI({
+  getExpenses: () => expenses,
+  money,
+  parseDateSafe
+});
   const getExpenses = () => expenses;
   const setExpenses = (next) => { expenses = next; };
 
@@ -127,7 +132,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (tabId === "report") renderReport(expenses, money, ymd);
     if (tabId === "tips") renderTips();          // ✅ NEW
-    if (tabId === "analyze") renderAnalyze();
+    if (tabId === "analyze") renderAnalyzeModule();
     if (tabId === "chat") renderChatWelcome();
   }
 
@@ -141,7 +146,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function onExpensesChanged(){
     const activePanel = document.querySelector(".panel.active")?.id;
     if (activePanel === "report") renderReport(expenses, money, ymd);
-    if (activePanel === "analyze") renderAnalyze();
+    if (activePanel === "analyze") renderAnalyzeModule();
     // Tips module keeps preview until user clicks generate (by design)
   }
 
