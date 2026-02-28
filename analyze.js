@@ -175,6 +175,39 @@ export function renderAnalyze() {
   const ww = getWeekendWeekdayTotals(expenses);
   const streak = getSpendingStreak(expenses);
   const noSpend7 = getNoSpendDaysLast7(expenses);
+  // ---------------------------
+// Savings Score (0–100)
+// ---------------------------
+let score = 50; // base score
+
+// Reward discipline
+score += noSpend7 * 5; // max +35
+
+// Trend impact
+if (trend.label === "Down") score += 15;
+if (trend.label === "Up") score -= 15;
+
+// Top category dominance impact
+if (top && totalAll > 0) {
+  const share = top.total / totalAll;
+  if (share >= 0.5) score -= 15;
+  else if (share >= 0.35) score -= 8;
+}
+
+// Budget risk impact
+if (budgetRiskLabel === "High Risk") score -= 20;
+if (budgetRiskLabel === "Warning") score -= 10;
+if (budgetRiskLabel === "Safe") score += 10;
+
+// Clamp between 0–100
+score = clamp(score, 0, 100);
+
+// Score label
+let scoreLabel = "Average";
+if (score >= 80) scoreLabel = "Excellent";
+else if (score >= 65) scoreLabel = "Good";
+else if (score >= 45) scoreLabel = "Average";
+else scoreLabel = "Needs Control";
 
   // ---------------------------
   // AI-style Predictions (rule-based)
@@ -271,6 +304,10 @@ export function renderAnalyze() {
         ? `${noSpend7} day${noSpend7 === 1 ? "" : "s"} • Good discipline`
         : "0 days • Try a savings challenge"
     },
+    {
+      k: "Savings Score",
+      v: `${score} / 100 • ${scoreLabel}`
+},
 
     // AI-style cards
     { k: "Trend (7d vs 7d)", v: `${trend.label} • ${trend.note}` },
