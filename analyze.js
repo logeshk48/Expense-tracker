@@ -135,6 +135,10 @@ export function initAnalyzeUI({ getExpenses, money, parseDateSafe }) {
   _money = money;
   _parseDateSafe = parseDateSafe;
 }
+function getNoSpendDaysLast7(expenses) {
+  const last7 = lastNDaysTotals(expenses, 7);
+  return last7.filter(d => d.total === 0).length;
+}
 
 export function renderAnalyze() {
   const expenses = _getExpenses ? _getExpenses() : [];
@@ -166,6 +170,7 @@ export function renderAnalyze() {
   // ✅ Feature #2: weekend vs weekday totals
   const ww = getWeekendWeekdayTotals(expenses);
   const streak = getSpendingStreak(expenses);
+  const noSpend7 = getNoSpendDaysLast7(expenses);
 
   // ---------------------------
   // AI-style Predictions (rule-based)
@@ -249,9 +254,16 @@ export function renderAnalyze() {
     {
         k: "Spending Streak",
         v: streak > 0 
-        ? `${streak} day${streak === 1 ? "" : "s"} • Consistent tracking`
-        : "0 days • Start today"
+          ? `${streak} day${streak === 1 ? "" : "s"} • Consistent tracking`
+          : "0 days • Start today"
 },
+    {
+      k: "No-Spend Days (7d)",
+      v: noSpend7 > 0
+        ? `${noSpend7} day${noSpend7 === 1 ? "" : "s"} • Good discipline`
+        : "0 days • Try a savings challenge"
+},
+
 
 
     // AI-style cards
