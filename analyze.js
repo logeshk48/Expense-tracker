@@ -106,6 +106,8 @@ function getWeekendWeekdayTotals(expenses) {
 
   return { weekend, weekday };
 }
+
+// ✅ Feature #3 helper
 function getSpendingStreak(expenses) {
   // streak based on unique dates with entries, counted from latest date backwards
   const dates = Array.from(new Set(expenses.map(e => e.date).filter(Boolean))).sort();
@@ -130,14 +132,16 @@ function getSpendingStreak(expenses) {
   return streak;
 }
 
+// ✅ Feature #4 helper (No-Spend Days)
+function getNoSpendDaysLast7(expenses) {
+  const last7 = lastNDaysTotals(expenses, 7);
+  return last7.filter(d => d.total === 0).length;
+}
+
 export function initAnalyzeUI({ getExpenses, money, parseDateSafe }) {
   _getExpenses = getExpenses;
   _money = money;
   _parseDateSafe = parseDateSafe;
-}
-function getNoSpendDaysLast7(expenses) {
-  const last7 = lastNDaysTotals(expenses, 7);
-  return last7.filter(d => d.total === 0).length;
 }
 
 export function renderAnalyze() {
@@ -167,7 +171,7 @@ export function renderAnalyze() {
   const uniqueDays = new Set(expenses.map(e => e.date)).size || 1;
   const avgPerActiveDay = totalAll / uniqueDays;
 
-  // ✅ Feature #2: weekend vs weekday totals
+  // ✅ Feature values
   const ww = getWeekendWeekdayTotals(expenses);
   const streak = getSpendingStreak(expenses);
   const noSpend7 = getNoSpendDaysLast7(expenses);
@@ -246,25 +250,27 @@ export function renderAnalyze() {
     { k: "Avg / Active Day", v: _money(avgPerActiveDay) },
     { k: "Most Expensive Day", v: bestDay ? `${bestDay.date} • ${_money(bestDay.val)}` : "—" },
 
-    // ✅ Feature #2 card
+    // ✅ Feature #2
     {
       k: "Weekend vs Weekday",
       v: `${_money(ww.weekend)} • ${ww.weekend >= ww.weekday ? "Weekend-heavy" : "Weekday-heavy"}`
     },
+
+    // ✅ Feature #3
     {
-        k: "Spending Streak",
-        v: streak > 0 
-          ? `${streak} day${streak === 1 ? "" : "s"} • Consistent tracking`
-          : "0 days • Start today"
-},
+      k: "Spending Streak",
+      v: streak > 0
+        ? `${streak} day${streak === 1 ? "" : "s"} • Consistent tracking`
+        : "0 days • Start today"
+    },
+
+    // ✅ Feature #4
     {
       k: "No-Spend Days (7d)",
       v: noSpend7 > 0
         ? `${noSpend7} day${noSpend7 === 1 ? "" : "s"} • Good discipline`
         : "0 days • Try a savings challenge"
-},
-
-
+    },
 
     // AI-style cards
     { k: "Trend (7d vs 7d)", v: `${trend.label} • ${trend.note}` },
@@ -293,7 +299,6 @@ export function renderAnalyze() {
   const barWidth = clamp(pct, 0, 100);
 
   if (contentWrap) {
-    // Make highlight-content act like a column
     contentWrap.style.display = "flex";
     contentWrap.style.flexDirection = "column";
     contentWrap.style.alignItems = "center";
