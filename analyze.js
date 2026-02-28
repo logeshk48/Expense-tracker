@@ -109,7 +109,6 @@ function getWeekendWeekdayTotals(expenses) {
 
 // ✅ Feature #3 helper
 function getSpendingStreak(expenses) {
-  // streak based on unique dates with entries, counted from latest date backwards
   const dates = Array.from(new Set(expenses.map(e => e.date).filter(Boolean))).sort();
   if (dates.length === 0) return 0;
 
@@ -132,7 +131,7 @@ function getSpendingStreak(expenses) {
   return streak;
 }
 
-// ✅ Feature #4 helper (No-Spend Days)
+// ✅ Feature #4 helper
 function getNoSpendDaysLast7(expenses) {
   const last7 = lastNDaysTotals(expenses, 7);
   return last7.filter(d => d.total === 0).length;
@@ -160,7 +159,9 @@ export function renderAnalyze() {
 
   // Highest spend day (overall)
   const byDay = new Map();
-  for (const e of expenses) byDay.set(e.date, (byDay.get(e.date) || 0) + Number(e.amount || 0));
+  for (const e of expenses) {
+    byDay.set(e.date, (byDay.get(e.date) || 0) + Number(e.amount || 0));
+  }
 
   let bestDay = null;
   for (const [date, val] of byDay.entries()) {
@@ -175,39 +176,6 @@ export function renderAnalyze() {
   const ww = getWeekendWeekdayTotals(expenses);
   const streak = getSpendingStreak(expenses);
   const noSpend7 = getNoSpendDaysLast7(expenses);
-  // ---------------------------
-// Savings Score (0–100)
-// ---------------------------
-let score = 50; // base score
-
-// Reward discipline
-score += noSpend7 * 5; // max +35
-
-// Trend impact
-if (trend.label === "Down") score += 15;
-if (trend.label === "Up") score -= 15;
-
-// Top category dominance impact
-if (top && totalAll > 0) {
-  const share = top.total / totalAll;
-  if (share >= 0.5) score -= 15;
-  else if (share >= 0.35) score -= 8;
-}
-
-// Budget risk impact
-if (budgetRiskLabel === "High Risk") score -= 20;
-if (budgetRiskLabel === "Warning") score -= 10;
-if (budgetRiskLabel === "Safe") score += 10;
-
-// Clamp between 0–100
-score = clamp(score, 0, 100);
-
-// Score label
-let scoreLabel = "Average";
-if (score >= 80) scoreLabel = "Excellent";
-else if (score >= 65) scoreLabel = "Good";
-else if (score >= 45) scoreLabel = "Average";
-else scoreLabel = "Needs Control";
 
   // ---------------------------
   // AI-style Predictions (rule-based)
@@ -265,6 +233,38 @@ else scoreLabel = "Needs Control";
     }
   }
 
+  // ✅ Feature #5: Savings Score (MOVED HERE - Correct Order)
+  let score = 50; // base score
+
+  // Reward discipline
+  score += noSpend7 * 5; // max +35
+
+  // Trend impact
+  if (trend.label === "Down") score += 15;
+  if (trend.label === "Up") score -= 15;
+
+  // Top category dominance impact
+  if (top && totalAll > 0) {
+    const share = top.total / totalAll;
+    if (share >= 0.5) score -= 15;
+    else if (share >= 0.35) score -= 8;
+  }
+
+  // Budget risk impact
+  if (budgetRiskLabel === "High Risk") score -= 20;
+  if (budgetRiskLabel === "Warning") score -= 10;
+  if (budgetRiskLabel === "Safe") score += 10;
+
+  // Clamp between 0–100
+  score = clamp(score, 0, 100);
+
+  // Score label
+  let scoreLabel = "Average";
+  if (score >= 80) scoreLabel = "Excellent";
+  else if (score >= 65) scoreLabel = "Good";
+  else if (score >= 45) scoreLabel = "Average";
+  else scoreLabel = "Needs Control";
+
   // Top category dominance tooltip
   let topCategoryNote = "—";
   if (top && totalAll > 0) {
@@ -283,31 +283,28 @@ else scoreLabel = "Needs Control";
     { k: "Avg / Active Day", v: _money(avgPerActiveDay) },
     { k: "Most Expensive Day", v: bestDay ? `${bestDay.date} • ${_money(bestDay.val)}` : "—" },
 
-    // ✅ Feature #2
     {
       k: "Weekend vs Weekday",
       v: `${_money(ww.weekend)} • ${ww.weekend >= ww.weekday ? "Weekend-heavy" : "Weekday-heavy"}`
     },
-
-    // ✅ Feature #3
     {
       k: "Spending Streak",
       v: streak > 0
         ? `${streak} day${streak === 1 ? "" : "s"} • Consistent tracking`
         : "0 days • Start today"
     },
-
-    // ✅ Feature #4
     {
       k: "No-Spend Days (7d)",
       v: noSpend7 > 0
         ? `${noSpend7} day${noSpend7 === 1 ? "" : "s"} • Good discipline`
         : "0 days • Try a savings challenge"
     },
+
+    // ✅ Feature #5 card
     {
       k: "Savings Score",
       v: `${score} / 100 • ${scoreLabel}`
-},
+    },
 
     // AI-style cards
     { k: "Trend (7d vs 7d)", v: `${trend.label} • ${trend.note}` },
