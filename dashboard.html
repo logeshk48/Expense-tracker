@@ -306,6 +306,23 @@
       <p>Built with ❤️ • Firebase • Ready for AI Integration</p>
     </footer>
   </div>
+  <!-- Floating Chatbot (Global) -->
+<div id="etChatFab" class="et-chat-fab" aria-label="Open chat">💬</div>
+
+<div id="etChatPanel" class="et-chat-panel" aria-hidden="true">
+  <div class="et-chat-head">
+    <div class="et-chat-title">Expense Assistant</div>
+    <button id="etChatClose" class="et-chat-close" aria-label="Close">✕</button>
+  </div>
+
+  <div id="etChatMsgs" class="et-chat-msgs"></div>
+
+  <div class="et-chat-inputRow">
+    <input id="etChatInput" class="et-chat-input"
+      placeholder="Ask about spending, trends, tips..." />
+    <button id="etChatSend" class="et-chat-send">Send</button>
+  </div>
+</div>
 
   <script type="module" src="auth.js?v=999"></script>
   <script type="module" src="app.js?v=999"></script>
