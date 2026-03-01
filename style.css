@@ -800,16 +800,23 @@ input:focus, select:focus{border-color: rgba(255,255,255,.35); background: rgba(
 }
 
 .et-chat-panel{
-  position: fixed;
-  right: 24px;
-  bottom: 94px;
-  width: min(360px, calc(100vw - 48px));
+  position: fixed !important;
+  right: 24px !important;
+  bottom: 94px !important;
+  top: auto !important;
+  left: auto !important;
+
+  width: 360px;
+  max-width: calc(100vw - 48px);
   height: 420px;
+
   border-radius: 18px;
-  z-index: 9999;
+  z-index: 99999;
+
   display: none;
   overflow: hidden;
-  background: rgba(20,26,34,.82);
+
+  background: rgba(20,26,34,.92);
   border: 1px solid rgba(255,255,255,.14);
   box-shadow: 0 18px 40px rgba(0,0,0,.45);
   backdrop-filter: blur(16px);
