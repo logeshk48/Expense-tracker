@@ -778,3 +778,113 @@ input:focus, select:focus{border-color: rgba(255,255,255,.35); background: rgba(
     drop-shadow(0 14px 30px rgba(0,255,200,.18))
     drop-shadow(0 10px 22px rgba(0,0,0,.48));
 }
+/* ============================
+   Floating Chatbot (Global)
+============================ */
+.et-chat-fab{
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 9999;
+  background: rgba(130,220,255,.16);
+  border: 1px solid rgba(255,255,255,.18);
+  box-shadow: 0 14px 30px rgba(0,0,0,.35);
+  backdrop-filter: blur(12px);
+  user-select: none;
+}
+
+.et-chat-panel{
+  position: fixed;
+  right: 24px;
+  bottom: 94px;
+  width: min(360px, calc(100vw - 48px));
+  height: 420px;
+  border-radius: 18px;
+  z-index: 9999;
+  display: none;
+  overflow: hidden;
+  background: rgba(20,26,34,.82);
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 18px 40px rgba(0,0,0,.45);
+  backdrop-filter: blur(16px);
+}
+
+.et-chat-panel.open{ display: flex; flex-direction: column; }
+
+.et-chat-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+}
+
+.et-chat-title{ font-weight: 700; opacity: .95; }
+
+.et-chat-close{
+  background: transparent;
+  border: 0;
+  color: rgba(255,255,255,.85);
+  cursor:pointer;
+  font-size: 16px;
+}
+
+.et-chat-msgs{
+  flex: 1;
+  padding: 12px;
+  overflow: auto;
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+
+.et-msg{
+  max-width: 85%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.35;
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.et-msg.user{
+  align-self: flex-end;
+  background: rgba(130,220,255,.14);
+}
+
+.et-msg.bot{
+  align-self: flex-start;
+  background: rgba(255,255,255,.08);
+}
+
+.et-chat-inputRow{
+  display:flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid rgba(255,255,255,.10);
+}
+
+.et-chat-input{
+  flex:1;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.22);
+  color: rgba(255,255,255,.92);
+  padding: 10px 12px;
+  outline: none;
+}
+
+.et-chat-send{
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(130,220,255,.20);
+  color: rgba(255,255,255,.92);
+  padding: 10px 12px;
+  cursor:pointer;
+}
