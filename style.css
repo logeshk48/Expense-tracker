@@ -895,3 +895,28 @@ input:focus, select:focus{border-color: rgba(255,255,255,.35); background: rgba(
   padding: 10px 12px;
   cursor:pointer;
 }
+#etChatPanel{
+  all: unset;
+  position: fixed !important;
+  right: 24px !important;
+  bottom: 94px !important;
+  top: auto !important;
+  left: auto !important;
+  width: 360px !important;
+  max-width: calc(100vw - 48px) !important;
+  height: 420px !important;
+  display: none;
+  z-index: 999999 !important;
+}
+
+#etChatPanel.open{
+  display: flex !important;
+  flex-direction: column;
+}
+
+#etChatFab{
+  position: fixed !important;
+  right: 24px !important;
+  bottom: 24px !important;
+  z-index: 999999 !important;
+}
