@@ -240,7 +240,226 @@ export function initReportUI({ getExpenses, money, ymd }){
 }
 
 export function renderReport(expenses, money, ymd){
-  const filtered = applyFilter(expenses);
-  renderFilteredCards(filtered);
-  renderCharts(expenses, money, ymd);
+  // ---------------------------
+  // PIE (CURRENT MONTH ONLY ✅)
+  // ---------------------------
+  const now = new Date();
+  const startM = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  const endM = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  const monthExpenses = (expenses || []).filter(e => {
+    const d = parseDateSafe(e.date);
+    return d >= startM && d <= endM;
+  });
+
+  const catTotals = buildCategoryTotals(monthExpenses);
+
+  // fallback if no data in this month
+  const labels = catTotals.length ? catTotals.map(x => x.category) : ["No data"];
+  const values = catTotals.length ? catTotals.map(x => x.total) : [1];
+  const realSum = catTotals.length ? values.reduce((a,b)=>a+(Number(b)||0),0) : 0;
+  const total = values.reduce((a,b)=> a + (Number(b)||0), 0) || 1;
+
+  const colorMap = {
+    Food: "#00FFC8",
+    Travel: "#7C4DFF",
+    Shopping: "#FF4DA6",
+    Bills: "#FFB020",
+    Entertainment: "#00B7FF",
+    Other: "#A0A7B4",
+    "No data": "#A0A7B4"
+  };
+  const baseColors = labels.map(l => colorMap[l] || "#A0A7B4");
+
+  const donutShadow = {
+    id: "donutShadow",
+    beforeDatasetsDraw(chart){
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.45)";
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 10;
+    },
+    afterDatasetsDraw(chart){
+      chart.ctx.restore();
+    }
+  };
+
+  const centerTotalPlugin = {
+    id: "centerTotalPlugin",
+    afterDraw(chart){
+      const { ctx, chartArea } = chart;
+      if (!chartArea) return;
+
+      const x = (chartArea.left + chartArea.right) / 2;
+      const y = (chartArea.top + chartArea.bottom) / 2;
+
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(255,255,255,0.88)";
+      ctx.font = "700 14px DM Sans, sans-serif";
+      ctx.fillText("This Month", x, y - 12);
+
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.font = "800 20px Syne, sans-serif";
+      ctx.fillText(money(realSum), x, y + 12);
+      ctx.restore();
+    }
+  };
+
+  const percentLabels = {
+    id: "percentLabels",
+    afterDatasetsDraw(chart){
+      if (!catTotals.length) return; // don't show % for "No data"
+      const meta = chart.getDatasetMeta(0);
+      if (!meta?.data?.length) return;
+
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "700 12px DM Sans, sans-serif";
+
+      meta.data.forEach((arc, i) => {
+        const v = Number(values[i] || 0);
+        if (!v) return;
+
+        const pct = (v / total) * 100;
+        if (pct < 4) return;
+
+        const p = arc.getProps(["x","y","startAngle","endAngle","innerRadius","outerRadius"], true);
+        const angle = (p.startAngle + p.endAngle) / 2;
+        const r = (p.innerRadius + p.outerRadius) / 2;
+
+        const x = p.x + Math.cos(angle) * r;
+        const y = p.y + Math.sin(angle) * r;
+
+        ctx.fillText(`${pct.toFixed(0)}%`, x, y);
+      });
+
+      ctx.restore();
+    }
+  };
+
+  const pieCtx = document.getElementById("pieChart")?.getContext("2d");
+  pieChart = ensureChart(pieCtx, pieChart, {
+    type: "doughnut",
+    plugins: [donutShadow, centerTotalPlugin, percentLabels],
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: baseColors.map(c => rgba(c, 0.55)),
+        borderWidth: 2,
+        borderColor: "rgba(255,255,255,0.85)",
+        spacing: 7,
+        borderRadius: 14,
+        cutout: "70%",
+        hoverBorderWidth: 3,
+        hoverBorderColor: "rgba(255,255,255,0.98)",
+        hoverOffset: 14
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: 12 },
+      animation: {
+        duration: 1200,
+        easing: "easeOutQuart",
+        animateRotate: true,
+        animateScale: true
+      },
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            color: "rgba(255,255,255,0.88)",
+            boxWidth: 12,
+            boxHeight: 12,
+            padding: 14,
+            font: { size: 12, weight: "600" },
+            generateLabels(chart){
+              const ds = chart.data.datasets[0];
+              return chart.data.labels.map((l, i) => {
+                const v = Number(ds.data[i] || 0);
+                const pct = catTotals.length ? ((v / total) * 100) : 0;
+                return {
+                  text: `${l} • ${pct.toFixed(0)}%`,
+                  fillStyle: baseColors[i],
+                  strokeStyle: "rgba(255,255,255,0.25)",
+                  lineWidth: 1,
+                  hidden: !chart.getDataVisibility(i),
+                  index: i
+                };
+              });
+            }
+          },
+          onClick(e, legendItem, legend){
+            const i = legendItem.index;
+            legend.chart.toggleDataVisibility(i);
+            legend.chart.update();
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              if (!catTotals.length) return `No expenses in current month`;
+              const v = Number(ctx.parsed || 0);
+              const pct = (v / total) * 100;
+              return `${ctx.label}: ${money(v)} (${pct.toFixed(1)}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Apply gradients after chart area exists
+  if (pieChart?.chartArea){
+    const { ctx, chartArea } = pieChart;
+    const cx = (chartArea.left + chartArea.right) / 2;
+    const cy = (chartArea.top + chartArea.bottom) / 2;
+
+    const grads = baseColors.map((hex) => {
+      const g = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(chartArea.width, chartArea.height) / 2);
+      g.addColorStop(0, rgba(hex, 0.95));
+      g.addColorStop(0.55, rgba(hex, 0.55));
+      g.addColorStop(1, rgba(hex, 0.18));
+      return g;
+    });
+
+    pieChart.data.datasets[0].backgroundColor = grads;
+    pieChart.update();
+  }
+
+  // ---------------------------
+  // BAR (last 7 days) ✅ (keep as is)
+  // ---------------------------
+  const last7 = lastNDaysTotals(expenses, ymd, 7);
+  const barCtx = document.getElementById("barChart")?.getContext("2d");
+
+  barChart = ensureChart(barCtx, barChart, {
+    type: "bar",
+    data: {
+      labels: last7.map(x => x.date.slice(5)),
+      datasets: [{
+        label: "Spend",
+        data: last7.map(x => x.total),
+        borderRadius: 10,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { color: "rgba(255,255,255,0.75)" }, grid: { color: "rgba(255,255,255,0.08)" } },
+        x: { ticks: { color: "rgba(255,255,255,0.75)" }, grid: { display: false } }
+      }
+    }
+  });
 }
