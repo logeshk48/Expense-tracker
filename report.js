@@ -53,22 +53,29 @@ function buildCategoryTotals(list) {
 }
 
 function lastNDaysTotals(list, ymd, n = 7) {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);   // ✅ force start of day
 
   const days = [];
+
   for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const key = ymd(d);
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+
+    const key = ymd(d);   // formatted YYYY-MM-DD
     days.push({ date: key, total: 0 });
   }
 
-  const idx = new Map(days.map((x, i) => [x.date, i]));
+  const indexMap = new Map(days.map((x, i) => [x.date, i]));
+
   for (const e of list) {
-    const i = idx.get(e.date);
-    if (i != null) days[i].total += Number(e.amount || 0);
+    if (!e.date) continue;
+    const idx = indexMap.get(e.date);
+    if (idx !== undefined) {
+      days[idx].total += Number(e.amount || 0);
+    }
   }
+
   return days;
 }
 
