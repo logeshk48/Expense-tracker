@@ -2,6 +2,7 @@
 // report.js handles charts + filter UI
 // expense.js handles Expense tab logic
 // tips.js handles Tips tab logic
+import { initFloatingChat } from "./chat.js?v=999";
 import { initAnalyzeUI, renderAnalyze as renderAnalyzeModule } from "./analyze.js?v=200";
 import { auth } from "./firebase-config.js?v=901";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
@@ -53,6 +54,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load expenses (shared state owned by app.js)
   let expenses = await loadExpensesFromCloud(uid);
+  initFloatingChat({
+  getExpenses: () => expenses,
+  money,
+  parseDateSafe
+});
   initAnalyzeUI({
   getExpenses: () => expenses,
   money,
