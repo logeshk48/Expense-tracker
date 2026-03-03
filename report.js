@@ -1,4 +1,4 @@
-// report.js — CLEAN FULL VERSION (Current Month Charts + Filters + Extremes)
+// report.js — FULL WORKING VERSION (No ensureChart, Today included, Month Pie)
 
 let _getExpenses = null;
 let _money = null;
@@ -10,35 +10,31 @@ let barChartInstance = null;
 /* ---------------------------
    Helpers
 --------------------------- */
+
 function parseDateSafe(s) {
   if (!s) return new Date(0);
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, (m || 1) - 1, d || 1);
 }
 
+// ✅ IMPORTANT: local YYYY-MM-DD (NOT toISOString)
+function ymdLocal(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function safeDestroy(chart) {
   try { chart?.destroy?.(); } catch {}
 }
-function hexToRgb(hex){
-  const h = (hex || "").replace("#", "");
-  if (h.length !== 6) return { r: 255, g: 255, b: 255 };
-  return {
-    r: parseInt(h.slice(0, 2), 16),
-    g: parseInt(h.slice(2, 4), 16),
-    b: parseInt(h.slice(4, 6), 16)
-  };
+
+function startOfMonth(d) {
+  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
 }
 
-function rgba(hex, a){
-  const { r, g, b } = hexToRgb(hex);
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-// ✅ helper: safely reuse chart instance
-function ensureChart(ctx, instance, config){
-  if (!ctx) return instance;
-  safeDestroy(instance);
-  return new Chart(ctx, config);
+function endOfMonth(d) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
 }
 
 function buildCategoryTotals(list) {
@@ -52,43 +48,31 @@ function buildCategoryTotals(list) {
   return arr;
 }
 
-function lastNDaysTotals(list, ymd, n = 7) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);   // ✅ force start of day
+// ✅ Last N days INCLUDING TODAY (local dates)
+function lastNDaysTotals(list, n = 7) {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
   const days = [];
-
   for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-
-    const key = ymd(d);   // formatted YYYY-MM-DD
-    days.push({ date: key, total: 0 });
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    days.push({ date: ymdLocal(d), total: 0 });
   }
 
-  const indexMap = new Map(days.map((x, i) => [x.date, i]));
-
+  const idx = new Map(days.map((x, i) => [x.date, i]));
   for (const e of list) {
-    if (!e.date) continue;
-    const idx = indexMap.get(e.date);
-    if (idx !== undefined) {
-      days[idx].total += Number(e.amount || 0);
-    }
+    const i = idx.get(e.date);
+    if (i != null) days[i].total += Number(e.amount || 0);
   }
 
   return days;
 }
 
-function startOfMonth(d) {
-  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
-}
-function endOfMonth(d) {
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
-}
-
 /* ---------------------------
    DOM
 --------------------------- */
+
 function getEls() {
   return {
     pieCanvas: document.getElementById("pieChart"),
@@ -106,8 +90,9 @@ function getEls() {
 }
 
 /* ---------------------------
-   Filters
+   Filtering
 --------------------------- */
+
 function applyFilter(expenses) {
   const { fromDate, toDate, filterCategory } = getEls();
 
@@ -117,6 +102,7 @@ function applyFilter(expenses) {
 
   return (expenses || []).filter(e => {
     const d = parseDateSafe(e.date);
+
     if (from && d < from) return false;
 
     if (to) {
@@ -126,23 +112,26 @@ function applyFilter(expenses) {
     }
 
     if (cat && (e.category || "") !== cat) return false;
+
     return true;
   });
 }
 
-function renderFilteredCards(list) {
+function renderFilteredCards(expenses) {
   const { filteredTotal, filteredCount } = getEls();
-  const total = (list || []).reduce((s, x) => s + Number(x.amount || 0), 0);
+  const total = (expenses || []).reduce((s, x) => s + Number(x.amount || 0), 0);
+
   if (filteredTotal) filteredTotal.textContent = _money(total);
-  if (filteredCount) filteredCount.textContent = String((list || []).length);
+  if (filteredCount) filteredCount.textContent = String((expenses || []).length);
 }
 
 /* ---------------------------
-   Extremes Card (Highest/Lowest day)
+   Extra card: Highest/Lowest day
 --------------------------- */
-function renderExtremesCard(expenses, money) {
+
+function renderDailyExtremes(expenses) {
   const byDay = new Map();
-  for (const e of expenses) {
+  for (const e of (expenses || [])) {
     if (!e.date) continue;
     byDay.set(e.date, (byDay.get(e.date) || 0) + Number(e.amount || 0));
   }
@@ -181,50 +170,56 @@ function renderExtremesCard(expenses, money) {
         </div>
       </div>
     `;
+
     reportSection.appendChild(extremesCard);
   }
 
   const hiEl = document.getElementById("rpHighestTrend");
   const loEl = document.getElementById("rpLowestTrend");
 
-  if (hiEl) hiEl.textContent = highest ? `${highest.date} • ${money(highest.total)}` : "—";
-  if (loEl) loEl.textContent = lowest ? `${lowest.date} • ${money(lowest.total)}` : "—";
+  if (hiEl) hiEl.textContent = highest ? `${highest.date} • ${_money(highest.total)}` : "—";
+  if (loEl) loEl.textContent = lowest ? `${lowest.date} • ${_money(lowest.total)}` : "—";
 }
 
 /* ---------------------------
-   Charts (CURRENT MONTH ONLY)
+   Charts (Pie + Bar)
 --------------------------- */
-function renderChartsCurrentMonth(allExpenses, money, ymd) {
+
+function renderCharts(expenses) {
   const { pieCanvas, barCanvas } = getEls();
   if (!pieCanvas || !barCanvas) return;
 
   const now = new Date();
-  const from = startOfMonth(now);
-  const to = endOfMonth(now);
+  const fromM = startOfMonth(now);
+  const toM = endOfMonth(now);
 
-  const monthExpenses = (allExpenses || []).filter(e => {
+  // ✅ Current Month ONLY for PIE
+  const monthExpenses = (expenses || []).filter(e => {
     const d = parseDateSafe(e.date);
-    return d >= from && d <= to;
+    return d >= fromM && d <= toM;
   });
 
-  // PIE
   const catTotals = buildCategoryTotals(monthExpenses);
   const pieLabels = catTotals.length ? catTotals.map(x => x.category) : ["No data"];
   const pieValues = catTotals.length ? catTotals.map(x => x.total) : [1];
 
-  // BAR (last 7 days inside current month list)
-  const last7 = lastNDaysTotals(monthExpenses, ymd, 7);
-  const barLabels = last7.map(x => x.date.slice(5));
+  // ✅ Bar: last 7 days INCLUDING TODAY (use all expenses)
+  const last7 = lastNDaysTotals(expenses || [], 7);
+  const barLabels = last7.map(x => x.date.slice(5)); // MM-DD
   const barValues = last7.map(x => x.total);
 
   safeDestroy(pieChartInstance);
   safeDestroy(barChartInstance);
 
+  // PIE
   pieChartInstance = new Chart(pieCanvas, {
     type: "doughnut",
     data: {
       labels: pieLabels,
-      datasets: [{ data: pieValues, borderWidth: 0 }]
+      datasets: [{
+        data: pieValues,
+        borderWidth: 0
+      }]
     },
     options: {
       responsive: true,
@@ -234,44 +229,54 @@ function renderChartsCurrentMonth(allExpenses, money, ymd) {
         legend: { position: "bottom" },
         tooltip: {
           callbacks: {
-            label: (ctx) => {
-              if (!catTotals.length) return "No expenses in current month";
-              return `${ctx.label}: ${money(ctx.parsed || 0)}`;
-            }
+            label: (ctx) => `${ctx.label}: ${_money(ctx.parsed || 0)}`
           }
         }
       }
     }
   });
 
+  // BAR
   barChartInstance = new Chart(barCanvas, {
     type: "bar",
     data: {
       labels: barLabels,
-      datasets: [{ label: "Spending", data: barValues, borderWidth: 0, borderRadius: 10 }]
+      datasets: [{
+        label: "Spending",
+        data: barValues,
+        borderWidth: 0,
+        borderRadius: 10
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => money(ctx.parsed.y || 0) } }
+        tooltip: { callbacks: { label: (ctx) => _money(ctx.parsed.y || 0) } }
+      },
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: (v) => _money(v) } }
       }
     }
   });
+
+  // Daily extremes based on filtered/current list? -> use ALL expenses
+  renderDailyExtremes(expenses || []);
 }
 
 /* ---------------------------
    Public API
 --------------------------- */
+
 export function initReportUI({ getExpenses, money, ymd }) {
   _getExpenses = getExpenses;
   _money = money;
-  _ymd = ymd;
+  _ymd = ymd; // kept for compatibility (not used now)
 
   const { applyBtn, clearBtn, fromDate, toDate, filterCategory } = getEls();
 
-  // prevent double binding
+  // prevent double-binding
   if (applyBtn && applyBtn.dataset.bound === "1") return;
   if (applyBtn) applyBtn.dataset.bound = "1";
 
@@ -285,7 +290,6 @@ export function initReportUI({ getExpenses, money, ymd }) {
     if (fromDate) fromDate.value = "";
     if (toDate) toDate.value = "";
     if (filterCategory) filterCategory.value = "";
-
     const all = _getExpenses ? _getExpenses() : [];
     renderFilteredCards(all);
   });
@@ -295,12 +299,9 @@ export function initReportUI({ getExpenses, money, ymd }) {
 }
 
 export function renderReport(expenses, money, ymd) {
-  // keep filter cards updated
-  renderFilteredCards(expenses);
+  // Use passed args if available (safety)
+  if (money) _money = money;
+  if (ymd) _ymd = ymd;
 
-  // charts only current month ✅
-  renderChartsCurrentMonth(expenses, money, ymd);
-
-  // extremes card (based on ALL data — if you want month only tell me)
-  renderExtremesCard(expenses, money);
+  renderCharts(expenses || []);
 }
