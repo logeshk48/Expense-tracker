@@ -103,11 +103,11 @@ function renderCharts(expenses, money, ymd){
   const { pieCanvas, barCanvas } = getEls();
   if (!pieCanvas || !barCanvas) return;
 
-  const catTotals = buildCategoryTotals(expenses);
+  const catTotals = buildCategoryTotals(monthExpenses);
   const pieLabels = catTotals.map(x => x.category);
   const pieValues = catTotals.map(x => x.total);
 
-  const last7 = lastNDaysTotals(expenses, ymd, 7);
+  const last7 = lastNDaysTotals(monthExpenses, ymd, 7);
   const barLabels = last7.map(x => x.date.slice(5));
   const barValues = last7.map(x => x.total);
 
@@ -238,11 +238,27 @@ export function initReportUI({ getExpenses, money, ymd }){
   const all = _getExpenses ? _getExpenses() : [];
   renderFilteredCards(all);
 }
+function startOfMonth(d){
+  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
+}
+function endOfMonth(d){
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
 
 export function renderReport(expenses, money, ymd){
   // ---------------------------
   // PIE (CURRENT MONTH ONLY ✅)
   // ---------------------------
+  const now = new Date();
+  const from = startOfMonth(now);
+  const to = endOfMonth(now);
+
+  // ✅ Only current month expenses for charts
+  const monthExpenses = expenses.filter(e => {
+    const d = parseDateSafe(e.date);
+    return d >= from && d <= to;
+  });
   const now = new Date();
   const startM = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
   const endM = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -438,7 +454,7 @@ export function renderReport(expenses, money, ymd){
   // ---------------------------
   // BAR (last 7 days) ✅ (keep as is)
   // ---------------------------
-  const last7 = lastNDaysTotals(expenses, ymd, 7);
+  const last7 = lastNDaysTotals(monthExpenses, ymd, 7);
   const barCtx = document.getElementById("barChart")?.getContext("2d");
 
   barChart = ensureChart(barCtx, barChart, {
