@@ -11,7 +11,7 @@ import {
   deleteExpenseFromCloud
 } from "./firebase-db.js?v=901";
 
-import { initReportUI, renderReport } from "./report.js?v=901";
+import { initReportUI, renderReport } from "./report.js?v=902";
 import { initExpenseEngine } from "./expense.js?v=901";
 import { initTipsUI, renderTips } from "./tip.js?v=901";
 
