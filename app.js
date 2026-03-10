@@ -26,8 +26,72 @@ function ymd(d) { return d.toISOString().slice(0, 10); }
 /* ---------------------------
    Main
 --------------------------- */
+/* ---------------------------
+   Theme Toggle
+--------------------------- */
+function initThemeToggle() {
+  const btn = document.getElementById("themeToggleBtn");
+  const icon = document.getElementById("themeToggleIcon");
+  if (!btn) return;
+
+  // Load saved theme
+  const savedTheme = localStorage.getItem("theme") || "dark";
+  document.documentElement.classList.toggle("light", savedTheme === "light");
+  updateThemeIcon();
+
+  function updateThemeIcon() {
+    const isLight = document.documentElement.classList.contains("light");
+    if (icon) icon.textContent = isLight ? "☀️" : "🌙";
+  }
+
+  function applyTheme() {
+    const isLightNow = document.documentElement.classList.contains("light");
+    const nextIsLight = !isLightNow;
+
+    document.documentElement.classList.toggle("light", nextIsLight);
+    localStorage.setItem("theme", nextIsLight ? "light" : "dark");
+    updateThemeIcon();
+  }
+
+  btn.addEventListener("click", () => {
+    const rect = btn.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    if (!document.startViewTransition) {
+      applyTheme();
+      return;
+    }
+
+    const transition = document.startViewTransition(() => {
+      applyTheme();
+    });
+
+    transition.ready.then(() => {
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`
+          ]
+        },
+        {
+          duration: 500,
+          easing: "ease-in-out",
+          pseudoElement: "::view-transition-new(root)"
+        }
+      );
+    });
+  });
+}
 document.addEventListener("DOMContentLoaded", async () => {
   if (!location.pathname.toLowerCase().includes("dashboard.html")) return;
+  initThemeToggle();
 
   // ✅ auth guard
   const uid = await new Promise((resolve) => {

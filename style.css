@@ -938,3 +938,73 @@ input:focus, select:focus{border-color: rgba(255,255,255,.35); background: rgba(
   display: flex !important;
   flex-direction: column !important;
 }
+/* =========================
+   Light Theme
+========================= */
+html.light{
+  --bg1:#eef6ff;
+  --bg2:#dfefff;
+  --glass: rgba(255,255,255,.72);
+  --glass2: rgba(255,255,255,.55);
+  --border: rgba(20,40,90,.12);
+  --text:#0f172a;
+  --muted:rgba(15,23,42,.68);
+  --shadow:0 18px 50px rgba(30,41,59,.12);
+}
+
+html.light .bg-4k{
+  background:
+    radial-gradient(circle at 20% 20%, rgba(0,140,255,.18), transparent 42%),
+    radial-gradient(circle at 80% 30%, rgba(0,255,200,.14), transparent 42%),
+    radial-gradient(circle at 50% 90%, rgba(255,0,150,.10), transparent 55%),
+    linear-gradient(135deg, #f8fbff, #edf5ff, #e3f0ff);
+}
+
+html.light .bg-overlay{
+  background: rgba(255,255,255,.30);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+html.light .animated-overlay{
+  opacity:.45;
+}
+
+html.light input,
+html.light select{
+  background: rgba(255,255,255,.72);
+  color: var(--text);
+  border-color: rgba(20,40,90,.12);
+}
+
+html.light input::placeholder{
+  color: rgba(15,23,42,.45);
+}
+
+html.light .btn-secondary{
+  background: rgba(255,255,255,.55);
+  color: var(--text);
+}
+
+html.light .btn-primary{
+  background: rgba(15,23,42,.08);
+  color: var(--text);
+}
+
+html.light .btn-danger{
+  background: rgba(255,80,80,.14);
+  color: #7f1d1d;
+}
+
+.theme-toggle-btn{
+  min-width: 48px;
+  min-height: 44px;
+  font-size: 18px;
+}
+
+/* View transition fix */
+::view-transition-old(root),
+::view-transition-new(root){
+  animation: none;
+  mix-blend-mode: normal;
+}
