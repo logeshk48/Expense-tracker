@@ -19,6 +19,65 @@ function clearProfile(){ localStorage.removeItem(PROFILE_KEY); }
 
 const isLoginPage = () => document.getElementById("loginForm") != null;
 const isDashboardPage = () => location.pathname.toLowerCase().includes("dashboard.html");
+function initThemeToggle() {
+  const btn = document.getElementById("themeToggleBtn");
+  const icon = document.getElementById("themeToggleIcon");
+  if (!btn) return;
+
+  const savedTheme = localStorage.getItem("theme") || "dark";
+  document.documentElement.classList.toggle("light", savedTheme === "light");
+  updateThemeIcon();
+
+  function updateThemeIcon() {
+    const isLight = document.documentElement.classList.contains("light");
+    if (icon) icon.textContent = isLight ? "☀️" : "🌙";
+  }
+
+  function applyTheme() {
+    const isLightNow = document.documentElement.classList.contains("light");
+    const nextIsLight = !isLightNow;
+
+    document.documentElement.classList.toggle("light", nextIsLight);
+    localStorage.setItem("theme", nextIsLight ? "light" : "dark");
+    updateThemeIcon();
+  }
+
+  btn.addEventListener("click", () => {
+    const rect = btn.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    if (!document.startViewTransition) {
+      applyTheme();
+      return;
+    }
+
+    const transition = document.startViewTransition(() => {
+      applyTheme();
+    });
+
+    transition.ready.then(() => {
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`
+          ]
+        },
+        {
+          duration: 500,
+          easing: "ease-in-out",
+          pseudoElement: "::view-transition-new(root)"
+        }
+      );
+    });
+  });
+}
 
 // 1) Handle redirect result (when coming back from Google)
 (async function handleRedirectResult(){
@@ -50,6 +109,7 @@ onAuthStateChanged(auth, (user) => {
 (function loginUI(){
   const form = document.getElementById("loginForm");
   if (!form) return;
+  initThemeToggle();
 
   const modeLoginBtn = document.getElementById("modeLogin");
   const modeSignupBtn = document.getElementById("modeSignup");

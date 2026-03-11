@@ -1008,3 +1008,8 @@ html.light .btn-danger{
   animation: none;
   mix-blend-mode: normal;
 }
+.theme-toggle-btn{
+  min-width: 48px;
+  min-height: 44px;
+  font-size: 18px;
+}
