@@ -265,29 +265,105 @@ input:focus, select:focus{border-color: rgba(255,255,255,.35); background: rgba(
 .top-actions{display:flex; gap:10px; flex-wrap:wrap}
 
 /* Tabs */
+/* ===== Premium Tabs Upgrade ===== */
 .tabs{
   display:flex;
-  gap:10px;
-  flex-wrap: wrap;
-  margin: 14px 0;
+  gap:14px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:16px 0 18px;
 }
+
 .tab{
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(0,0,0,.18);
-  color: rgba(255,255,255,.85);
-  padding: 10px 12px;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-width:132px;
+  height:54px;
+  padding:0 22px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.045);
+  color:rgba(255,255,255,.82);
   cursor:pointer;
-  display:flex; gap:8px; align-items:center;
-  transition: background .2s ease, transform .12s ease;
+  overflow:hidden;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 8px 24px rgba(0,0,0,.18);
+  transition:
+    transform .25s ease,
+    background .25s ease,
+    border-color .25s ease,
+    box-shadow .25s ease,
+    color .25s ease;
 }
-.tab:hover{background: rgba(0,0,0,.26); transform: translateY(-1px)}
+
+.tab::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:linear-gradient(
+    135deg,
+    rgba(255,255,255,.10),
+    rgba(255,255,255,.02)
+  );
+  opacity:0;
+  transition:opacity .25s ease;
+}
+
+.tab:hover{
+  transform:translateY(-2px);
+  background:rgba(255,255,255,.07);
+  color:#fff;
+  border-color:rgba(255,255,255,.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 12px 28px rgba(0,0,0,.24),
+    0 0 0 1px rgba(255,255,255,.04);
+}
+
+.tab:hover::before{
+  opacity:1;
+}
+
 .tab.active{
-  background: rgba(255,255,255,.14);
-  border-color: rgba(255,255,255,.22);
-  color: rgba(255,255,255,.95);
+  color:#fff;
+  border-color:rgba(255,255,255,.18);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.06)),
+    linear-gradient(135deg, rgba(120,160,255,.22), rgba(85,220,255,.10));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.15),
+    0 12px 30px rgba(0,0,0,.28),
+    0 0 22px rgba(98,170,255,.16);
 }
-.tab-icon{opacity:.95}
+
+.tab.active::after{
+  content:"";
+  position:absolute;
+  left:18px;
+  right:18px;
+  bottom:7px;
+  height:2px;
+  border-radius:999px;
+  background:linear-gradient(
+    90deg,
+    rgba(255,255,255,.15),
+    rgba(255,255,255,.75),
+    rgba(255,255,255,.15)
+  );
+}
+
+.tab-icon{
+  opacity:.95;
+  font-size:16px;
+  line-height:1;
+}
 
 /* Panels */
 .content{display:block}
@@ -950,6 +1026,32 @@ html.light{
   --text:#0f172a;
   --muted:rgba(15,23,42,.68);
   --shadow:0 18px 50px rgba(30,41,59,.12);
+}
+html.light .tab{
+  background: rgba(255,255,255,.58);
+  color: rgba(15,23,42,.78);
+  border-color: rgba(20,40,90,.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.65),
+    0 8px 20px rgba(30,41,59,.08);
+}
+
+html.light .tab:hover{
+  background: rgba(255,255,255,.82);
+  color: #0f172a;
+  border-color: rgba(20,40,90,.14);
+}
+
+html.light .tab.active{
+  color:#0f172a;
+  border-color: rgba(80,120,255,.18);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.92), rgba(255,255,255,.72)),
+    linear-gradient(135deg, rgba(120,160,255,.18), rgba(85,220,255,.08));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.92),
+    0 10px 24px rgba(30,41,59,.10),
+    0 0 18px rgba(98,170,255,.12);
 }
 
 html.light .bg-4k{
