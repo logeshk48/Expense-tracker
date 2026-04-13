@@ -6,8 +6,6 @@ It provides real-time analytics, interactive charts, authentication, and financi
 ---
 
 ## 🚀 Live Demo
-
-🔗 Add your GitHub Pages link here  
 https://logeshk48.github.io/Expense-tracker/index.html
 ---
 
